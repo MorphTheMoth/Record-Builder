@@ -8,6 +8,7 @@ let selectedDiscs = [null, null, null, null, null, null];
 let potLevels = {};
 let noteCounts = {};
 let potentialDesc = {};
+let discImagesPreloaded = false;
 
 const NOTE_IDS = [90011,90012,90013,90014,90015,90016,90017,90018,90019,90020,90021,90022,90023];
 const ELEMENT_NOTE = {Aqua:90018,Ignis:90019,Ventus:90020,Terra:90021,Lux:90022,Umbra:90023};
@@ -836,6 +837,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('copyOutputBtn')?.addEventListener('click', copyOutputText);
 });
 
+async function preloadAllDiscImages() {
+  if (discImagesPreloaded) return;
+  const ids = Object.keys(discData);
+  for (const id of ids) {
+    const imgId = String(id).slice(2);
+    const img = new Image();
+    img.src = BASE_ASSETS + `export/assets/assetbundles/icon/outfit/outfit_${imgId}.webp`;
+  }
+  discImagesPreloaded = true;
+}
+
 async function init() {
   try {
     [charData, discData, charJson] = await Promise.all([
@@ -853,6 +865,7 @@ async function init() {
     const potLang = await fetchJSON(BASE_RAW + 'EN/language/en_US/Potential.json');
     potentialDesc = potLang;
   } catch(e) { console.warn('Could not load potential descriptions', e); }
+  preloadAllDiscImages();
 }
 
 init();
