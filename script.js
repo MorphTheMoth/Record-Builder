@@ -23,7 +23,7 @@ const ELEMENT_NOTE = {Aqua:90018,Ignis:90019,Ventus:90020,Terra:90021,Lux:90022,
 // Effect attribute type enum mapping
 const EFFECT_ATTR_NAMES = {
   1: 'ATK', 2: 'DEF', 3: 'HP', 4: 'HITRATE', 5: 'EVD',
-  6: 'CRIT RATE', 7: 'CRIT RESIST', 8: 'CRIT RATE', 9: 'PENETRATE',
+  6: 'CRIT RATE', 7: 'CRIT RESIST', 8: 'CRIT DMG', 9: 'PENETRATE',
   10: 'DEF IGNORE', 11: 'WER', 12: 'FER', 13: 'SER', 14: 'AER',
   15: 'LER', 16: 'DER', 17: 'WEE', 18: 'FEE', 19: 'SEE', 20: 'AEE',
   21: 'LEE', 22: 'DEE', 23: 'WEP', 24: 'FEP', 25: 'SEP', 26: 'AEP',
