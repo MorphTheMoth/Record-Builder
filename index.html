@@ -140,8 +140,22 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 }
 .pot-tab:hover { background: #2a2a2a; color: #999; }
 .pot-tab.active { background: #2a2a2a; border-color: #666; color: #ccc; }
-.pot-page { display: none; }
-.pot-page.active { display: flex; gap: 16px; flex-wrap: wrap; }
+.pot-page {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  flex-wrap: nowrap;
+}
+.pot-groups-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.pot-page.active {
+  display: flex;
+  flex-direction: column;   /* force column layout */
+  gap: 16px;
+}
 .pot-group { flex: 1; min-width: 200px; }
 .pot-group-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
 .pot-list { display: flex; flex-direction: column; gap: 4px; }
@@ -168,7 +182,7 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 .pot-val {
   width: 28px; background: #222; border: 1px solid #3a3a3a; border-left: none; border-right: none;
   color: #ccc; font-size: 13px; font-weight: bold; padding: 0; text-align: center;
-  font-family: inherit; height: 24px; outline: none;
+  font-family: inherit; height: 24px; outline: none; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
 }
 .pot-val:focus { background: #2a2a2a; }
 
@@ -181,8 +195,85 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 .pot-tooltip img {  width: 100px; object-fit: contain; }
 .pot-tooltip .desc { flex: 1; word-wrap: break-word; white-space: normal; }
 
+/* Emblems */
+.emblem-section {
+  margin-top: 0;            /* remove top margin because gap already handles spacing */
+  border-top: 1px solid #2a2a2a;
+  padding-top: 12px;
+  width: 100%;
+  flex: 0 0 auto;          /* don’t grow or shrink, just be full width */
+}
+.emblem-section-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.emblem-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);   /* 4 equal columns */
+  gap: 8px;
+  align-items: start;
+  width: 100%;
+}
+
+.emblem-card {
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  padding: 8px;  min-width: 0;
+  overflow: hidden;
+}
+
+.emblem-output-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;  min-width: 0;
+  overflow: hidden;
+}
+
+.emblem-output {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 10px 14px;
+  color: #888;
+  font-size: 12px;
+  font-family: inherit;
+  flex: 1;
+  min-height: 107px;
+  overflow: auto;
+  white-space: pre;
+}
+.emblem-output-btn-row { display: flex; gap: 4px; }
+.emblem-output-btn {
+  background: #222; border: 1px solid #444; color: #aaa; padding: 4px 10px;
+  border-radius: 3px; cursor: pointer; font-size: 10px; font-family: inherit;
+  letter-spacing: 0.5px; white-space: nowrap; transition: background 0.1s;
+  height: 24px; display: flex; align-items: center;
+}
+.emblem-output-btn:hover { background: #2e2e2e; color: #ccc; }
+.emblem-feedback { font-size: 10px; color: #6c6; margin-left: 8px; white-space: nowrap; }
+.emblem-card-label { font-size: 9px; color: #777; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.emblem-stats { display: flex; flex-direction: column; gap: 4px; }
+.emblem-stat-row { display: flex; align-items: center; gap: 6px; }
+.emblem-stat-select {
+  flex: 1; min-width: 0; background: #222; border: 1px solid #3a3a3a;
+  color: #ccc; font-size: 10px; padding: 1px 3px; height: 22px;
+  font-family: inherit; outline: none; cursor: pointer; appearance: none;
+  -webkit-appearance: none; border-radius: 2px;   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  max-width: 100%;
+}
+.emblem-stat-select:focus { border-color: #555; background: #2a2a2a; }
+.emblem-level-select {
+  width: 86px; flex-shrink: 0; background: #222; border: 1px solid #3a3a3a;
+  color: #aaa; font-size: 10px; padding: 1px 3px; height: 22px;
+  font-family: inherit; outline: none; cursor: pointer; appearance: none;
+  -webkit-appearance: none; border-radius: 2px;
+}
+.emblem-level-select:focus { border-color: #555; background: #2a2a2a; }
+
+
 /* Notes */
-input[type=number] { -moz-appearance: textfield; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .notes-grid { display: flex; gap: 8px; flex-wrap: wrap; }

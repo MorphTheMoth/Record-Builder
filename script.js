@@ -1,4 +1,3 @@
-
 const BASE_RAW = 'https://raw.githubusercontent.com/AutumnVN/StellaSoraData/main/';
 const BASE_ASSETS = 'https://raw.githubusercontent.com/AutumnVN/ssassets/main/';
 
@@ -8,10 +7,158 @@ let selectedDiscs = [null, null, null, null, null, null];
 let potLevels = {};
 let noteCounts = {};
 let potentialDesc = {};
+let emblemStats = {};
+let emblemStatGroups = {};
+let emblemAttrData = {};
+let itemData = {};
+let emblemStatOptions = {};
+let emblemPotBonuses = {};
+let charGemAttrGroups = null;
+let typeIdToSlot = {};
 let discImagesPreloaded = false;
 
 const NOTE_IDS = [90011,90012,90013,90014,90015,90016,90017,90018,90019,90020,90021,90022,90023];
 const ELEMENT_NOTE = {Aqua:90018,Ignis:90019,Ventus:90020,Terra:90021,Lux:90022,Umbra:90023};
+
+// Effect attribute type enum mapping
+const EFFECT_ATTR_NAMES = {
+  1: 'ATK', 2: 'DEF', 3: 'HP', 4: 'HITRATE', 5: 'EVD',
+  6: 'CRIT RATE', 7: 'CRIT RESIST', 8: 'CRIT RATE', 9: 'PENETRATE',
+  10: 'DEF IGNORE', 11: 'WER', 12: 'FER', 13: 'SER', 14: 'AER',
+  15: 'LER', 16: 'DER', 17: 'WEE', 18: 'FEE', 19: 'SEE', 20: 'AEE',
+  21: 'LEE', 22: 'DEE', 23: 'WEP', 24: 'FEP', 25: 'SEP', 26: 'AEP',
+  27: 'LEP', 28: 'DEP', 29: 'WEI', 30: 'FEI', 31: 'SEI', 32: 'AEI',
+  33: 'LEI', 34: 'DEI', 35: 'WEERCD', 36: 'FEERCD', 37: 'SEERCD',
+  38: 'AEERCD', 39: 'LEERCD', 40: 'DEERCD', 41: 'WEIGHT',
+  42: 'TOUGHNESS_MAX', 43: 'TOUGHNESS_DAMAGE_ADJUST', 44: 'SHIELD_MAX',
+  46: 'MOVE SPEED', 47: 'ATK SPD', 48: 'INTENSITY', 49: 'GENDMG',
+  50: 'DMGPLUS', 51: 'FINAL DMG', 52: 'FINALDMGPLUS', 53: 'GENDMGRCD',
+  54: 'DMGPLUSRCD', 55: 'SUPPRESS', 56: 'AA DMG', 57: 'SKILL DMG',
+  58: 'ULTIMATE DMG', 59: 'OTHER DMG', 60: 'RCDNORMALDMG', 61: 'RCDSKILLDMG',
+  62: 'RCDULTRADMG', 63: 'RCDOTHERDMG', 64: 'MARK DMG', 65: 'RCDMARKDMG',
+  66: 'MINION DMG', 67: 'RCDMINION DMG', 68: 'PROJECTILE DMG', 69: 'RCDPROJECTILEDMG',
+  70: 'AA CRIT RATE', 71: 'SKILL CRIT RATE', 72: 'ULTRA CRIT RATE',
+  73: 'MARK CRIT RATE', 74: 'MINION CRIT RATE', 75: 'PROJECTILE CRIT RATE',
+  76: 'OTHER CRIT RATE', 77: 'AA CRIT POWER', 78: 'SKILL CRIT POWER',
+  79: 'ULTRA CRIT POWER', 80: 'MARK CRIT POWER', 81: 'MINION CRIT RATE',
+  82: 'PROJECTILE CRIT POWER', 83: 'OTHER CRIT POWER', 84: 'ENERGY_MAX',
+  85: 'SKILL_INTENSITY', 86: 'TOUGHNESS_BROKEN_DMG', 87: 'ADD_SHIELD_STRENGTHEN',
+  88: 'BE_ADD_SHIELD_STRENGTHEN', 89: 'NORMAL_SUPPRESS', 90: 'SKILL_SUPPRESS',
+  91: 'ULTRA_SUPPRESS', 92: 'MARK_SUPPRESS', 93: 'MINION SUPPRESS',
+  94: 'PROJECTILE_SUPPRESS', 95: 'OTHER_SUPPRESS', 96: 'ENV_AMEND'
+};
+
+// Ability type names
+const ABILITY_TYPE_NAMES = {
+  1: 'AA', 2: 'Skill', 3: 'Support Skill', 4: 'Ultimate'
+};
+
+// Charge efficiency type names
+const CHARGE_EFF_TYPE_NAMES = {
+  0: 'Supp', 1: 'Main'
+};
+
+function capitalizeWords(str) {
+  return str
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+// ── Emblem stat grouping ───────────────────────────────────────────────────
+function buildEmblemGroups(charId, isMain) {
+  const potMap = {};
+  const entries = Object.entries(emblemAttrData)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([, entry]) => entry);
+
+  // ── Build lookup: full potential ID → group order (1/2/3) ───────────
+  const potGroupOrder = {}; // fullID -> order
+  const cData = charJson[charId];
+  if (cData?.potential) {
+    const coreKey = isMain ? 'mainCore' : 'supportCore';
+    const normalKey = isMain ? 'mainNormal' : 'supportNormal';
+    const commonKey = 'common';
+
+    const corePots = (cData.potential[coreKey] || []).slice().sort((a, b) => a.id - b.id);
+    const normalPots = (cData.potential[normalKey] || []).slice().sort((a, b) => a.id - b.id);
+    const commonPots = (cData.potential[commonKey] || []).slice().sort((a, b) => a.id - b.id);
+
+    // Group 1
+    corePots.slice(0, 2).forEach(p => potGroupOrder[p.id] = 1);
+    normalPots.slice(0, 3).forEach(p => potGroupOrder[p.id] = 1);
+    // Group 2
+    corePots.slice(2, 4).forEach(p => potGroupOrder[p.id] = 2);
+    normalPots.slice(3, 6).forEach(p => potGroupOrder[p.id] = 2);
+    // Group 3
+    normalPots.slice(6).forEach(p => potGroupOrder[p.id] = 3);
+    commonPots.forEach(p => potGroupOrder[p.id] = 3);
+  }
+
+  const byEmblem = [{}, {}, {}];
+
+  for (const entry of entries) {
+    const typeId = entry.TypeId;
+    const slotNumber = typeIdToSlot[typeId];
+    if (!slotNumber) continue;
+    const emblemIdx = slotNumber - 1;
+
+    const {
+      AttrType, AttrTypeFirstSubtype, AttrTypeSecondSubtype,
+      Level, Id, Value
+    } = entry;
+
+    let name;
+    let order = 0;
+
+    // Element‑specific stats
+    if (AttrType === 12 && AttrTypeFirstSubtype >= 17 && AttrTypeFirstSubtype <= 28) {
+      const elements = ['Ventus', 'Ignis', 'Terra', 'Aqua', 'Lux', 'Umbra'];
+      const suffix = AttrTypeFirstSubtype <= 22 ? 'Dmg %' : 'Pen';
+      const elemIndex = (AttrTypeFirstSubtype - 17) % 6;
+      const requiredElement = elements[elemIndex];
+      const charElement = charJson[charId]?.element;
+      if (charElement !== requiredElement) continue;
+      name = `${requiredElement} ${suffix}`;
+    } else if (AttrType === 12) {
+      name = capitalizeWords(EFFECT_ATTR_NAMES[AttrTypeFirstSubtype]) || `Attr${AttrTypeFirstSubtype}`;
+    } else if (AttrType === 37) {
+      name = `Charge Eff (${CHARGE_EFF_TYPE_NAMES[AttrTypeFirstSubtype] ?? AttrTypeFirstSubtype}) `;
+    } else if (AttrType === 7) {
+      name = `${ABILITY_TYPE_NAMES[AttrTypeFirstSubtype] ?? AttrTypeFirstSubtype} Levelup`;
+    } else if (AttrType === 99) {
+      // Reconstruct full potential ID: 5 + charId + zero-padded subtype
+      const paddedSub = String(AttrTypeFirstSubtype).padStart(2, '0');
+      const fullPotId = Number('5' + charId + paddedSub);
+      const groupOrd = potGroupOrder[fullPotId];
+      if (groupOrd === undefined) continue; // not in any build → skip
+      order = groupOrd;
+
+      const itemKey = `Item.5${charId}${paddedSub}.1`;
+      const itemName = itemData[itemKey];
+      name = itemName ? itemName : `Potential ${paddedSub}`;
+      potMap[fullPotId] = { emblemIdx, typeId };
+    } else {
+      continue;
+    }
+
+    const groups = byEmblem[emblemIdx];
+    if (!groups[typeId]) {
+      groups[typeId] = { name, entries: [], order };
+    }
+    groups[typeId].entries.push({ id: Id, level: Level, value: Value });
+    if (AttrType == 99 || AttrType == 7) groups[typeId].isLevelup = true;
+  }
+
+  // Sort levels within each group
+  for (let i = 0; i < 3; i++) {
+    for (const g of Object.values(byEmblem[i])) {
+      g.entries.sort((a, b) => a.level - b.level);
+    }
+  }
+
+  return { groups: byEmblem, potMap };
+}
 
 async function fetchJSON(url) {
   const r = await fetch(url);
@@ -313,6 +460,26 @@ function selectDisc(slotIdx, id) {
 // -------------------------------------------------- POTENTIALS -----------------------------------------
 let activePotTab = 0;
 
+function computeEmblemBonuses(charId) {
+  for (const key in emblemPotBonuses) 
+    if (key.startsWith('5' + charId)) delete emblemPotBonuses[key];
+
+  for (let e = 0; e < 3; e++) {
+    for (let s = 0; s < 4; s++) {
+      const key = `${charId}_${e}_${s}`;
+      const statEntryId = emblemStats[key];
+      if (!statEntryId) continue;
+
+      const entry = emblemAttrData[statEntryId];
+      if (!entry || entry.AttrType !== 99) continue;
+
+      const paddedSub = String(entry.AttrTypeFirstSubtype).padStart(2, '0');
+      const fullPotId = Number('5' + charId + paddedSub);
+      emblemPotBonuses[fullPotId] = (emblemPotBonuses[fullPotId] || 0) + entry.Level;
+    }
+  }
+}
+
 function updatePotentials() {
   let globalTooltip = document.querySelector('.pot-tooltip');
   if (!globalTooltip) {
@@ -373,6 +540,9 @@ function updatePotentials() {
       { core: [], normal: normalPots.slice(6), common: commonPots, label: 'Group 3' }
     ];
 
+    const groupsRow = document.createElement('div');
+    groupsRow.className = 'pot-groups-row';
+
     groups.forEach((group, idx) => {
       const allItems = [];
       group.core.forEach(p => allItems.push({ ...p, maxLvl: 1, isCore: true }));
@@ -411,8 +581,10 @@ function updatePotentials() {
         const btnMinus = document.createElement('button');
         btnMinus.className = 'pot-btn'; btnMinus.textContent = '−';
 
-        const inp = document.createElement('input');
+        const inp = document.createElement('span');
         inp.className = 'pot-val';
+        const bonus = emblemPotBonuses[p.id] || 0;
+        inp.textContent = bonus > 0 ? `${potLevels[p.id]}+${bonus}` : potLevels[p.id];
         inp.type = 'number'; inp.min = 0; inp.max = maxLvl; inp.value = potLevels[p.id];
         inp.oninput = () => {
           potLevels[p.id] = Math.min(maxLvl, Math.max(0, +inp.value || 0));
@@ -423,19 +595,49 @@ function updatePotentials() {
         const btnPlus = document.createElement('button');
         btnPlus.className = 'pot-btn'; btnPlus.textContent = '+';
 
-        const update = (val) => {
-          potLevels[p.id] = Math.min(maxLvl, Math.max(0, val));
-          inp.value = potLevels[p.id];
-          item.classList.toggle('active', potLevels[p.id] > 0);
+        const update = (val, diff) => {
+          // Clicked '+' when already at max → try to add emblem level
+          if (val === 6) {
+            if (diff === +1) {
+              if (tryAddEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+                computeEmblemBonuses(cId);
+                updatePotentials();
+                generate();
+              }
+              return;
+            } else if (diff === -1) {  // Clicked '−' → try to remove an emblem level
+              if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+                computeEmblemBonuses(cId);
+                updatePotentials();
+                generate();
+                return;
+              }
+            }
+          }
+          if (val === -diff) { 
+            if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+              tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
+              tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
+              computeEmblemBonuses(cId);
+              updatePotentials();
+            }
+          }
+          // Normal level change
+          potLevels[p.id] = Math.min(maxLvl, Math.max(0, val+diff));
+          const b = emblemPotBonuses[p.id] || 0;
+          inp.textContent = b > 0 ? `${potLevels[p.id]}+${b}` : potLevels[p.id];
+          item.classList.toggle('active', potLevels[p.id] + b > 0);
+          computeEmblemBonuses(cId);
+          updatePotentials();
           generate();
         };
 
-        btnMinus.onclick = (e) => { e.stopPropagation(); update(potLevels[p.id] - 1); };
-        btnPlus.onclick  = (e) => { e.stopPropagation(); update(potLevels[p.id] + 1); };
+        btnMinus.onclick = (e) => { e.stopPropagation(); update(potLevels[p.id], -1); };
+        btnPlus.onclick  = (e) => { e.stopPropagation(); update(potLevels[p.id], +1); };
 
         item.onclick = (e) => {
           if (e.target === btnMinus || e.target === btnPlus || e.target === inp) return;
-          update(potLevels[p.id] > 0 ? 0 : maxLvl);
+          update(potLevels[p.id], potLevels[p.id] > 0 ? -potLevels[p.id] : maxLvl);
         };
 
         controls.appendChild(btnMinus); controls.appendChild(inp); controls.appendChild(btnPlus);
@@ -488,11 +690,305 @@ function updatePotentials() {
       });
 
       groupDiv.appendChild(listDiv);
-      page.appendChild(groupDiv);
+      groupsRow.appendChild(groupDiv);
     });
 
+    page.appendChild(groupsRow);
+
+    // Add emblems section
+    const emblemSection = document.createElement('div');
+    emblemSection.className = 'emblem-section';
+
+    const emblemLabel = document.createElement('div');
+    emblemLabel.className = 'emblem-section-label';
+    emblemLabel.textContent = 'Emblems';
+    emblemSection.appendChild(emblemLabel);
+
+    const emblemContainer = document.createElement('div');
+    emblemContainer.className = 'emblem-container';
+
+    // 3 emblem cards – append directly to the grid (each gets a column)
+    const { groups: allEmblemGroups, potMap } = buildEmblemGroups(cId, isMain);
+    for (let e = 0; e < 3; e++) {
+      const card = document.createElement('div');
+      card.className = 'emblem-card';
+
+      const cardLabel = document.createElement('div');
+      cardLabel.className = 'emblem-card-label';
+      cardLabel.textContent = `Lvl ${e*10 + 70}`;
+      card.appendChild(cardLabel);
+
+      const statsDiv = document.createElement('div');
+      statsDiv.className = 'emblem-stats';
+
+      const groups = allEmblemGroups[e];
+      const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+        const ga = groups[a];
+        const gb = groups[b];
+        const oa = ga.order ?? 0;
+        const ob = gb.order ?? 0;
+        if (oa !== ob) return oa - ob;
+        return Number(a) - Number(b);
+      });
+
+      for (let s = 0; s < 4; s++) {
+        const key = `${cId}_${e}_${s}`;
+        if (emblemStats[key] === undefined) emblemStats[key] = '';
+        if (emblemStatGroups[key] === undefined) emblemStatGroups[key] = '';
+
+        const row = document.createElement('div');
+        row.className = 'emblem-stat-row';
+
+        const statSel = document.createElement('select');
+        statSel.className = 'emblem-stat-select';
+        const blankOpt = document.createElement('option');
+        blankOpt.value = ''; blankOpt.textContent = '— stat —';
+        statSel.appendChild(blankOpt);
+        sortedGroupKeys.forEach(gk => {
+          const opt = document.createElement('option');
+          opt.value = gk;
+          opt.textContent = groups[gk].name;
+          if (gk === emblemStatGroups[key]) opt.selected = true;
+          statSel.appendChild(opt);
+        });
+
+        const lvlSel = document.createElement('select');
+        lvlSel.className = 'emblem-level-select';
+        const fillLevelSel = (gk) => {
+          lvlSel.innerHTML = '';
+          const blk = document.createElement('option');
+          blk.value = ''; blk.textContent = '— lv —';
+          lvlSel.appendChild(blk);
+          if (!gk || !groups[gk]) return;
+          groups[gk].entries.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = String(entry.id);
+            opt.textContent = groups[gk].isLevelup ? `+${entry.value}` : `${entry.value < 1 ? (entry.value*100)+"%" : entry.value}`;
+            if (String(entry.id) === String(emblemStats[key])) opt.selected = true;
+            lvlSel.appendChild(opt);
+          });
+        };
+        fillLevelSel(emblemStatGroups[key]);
+
+        statSel.onchange = () => {
+          emblemStatGroups[key] = statSel.value;
+          emblemStats[key] = '';
+          fillLevelSel(statSel.value);
+          if (lvlSel.options.length > 1) {
+            lvlSel.selectedIndex = lvlSel.options.length - 1;
+            emblemStats[key] = lvlSel.value;
+          }
+          computeEmblemBonuses(cId);
+          updatePotentials();
+          generate();
+        };
+        lvlSel.onchange = () => {
+          emblemStats[key] = lvlSel.value;
+          computeEmblemBonuses(cId);
+          updatePotentials();
+          generate();
+        };
+
+        row.appendChild(statSel);
+        row.appendChild(lvlSel);
+        statsDiv.appendChild(row);
+      }
+
+      card.appendChild(statsDiv);
+      emblemContainer.appendChild(card);    // direct child of the grid
+    }
+
+    // Output column – the 4th grid cell
+    const emblemOutputContainer = document.createElement('div');
+    emblemOutputContainer.className = 'emblem-output-container';
+
+    const emblemOutput = document.createElement('div');
+    emblemOutput.className = 'emblem-output';
+    emblemOutput.id = `emblem-output-${cId}`;
+    emblemOutput.textContent = '—';
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'emblem-output-btn-row';
+
+    const feedbackSpan = document.createElement('span');
+    feedbackSpan.className = 'emblem-feedback';
+    feedbackSpan.id = `emblem-feedback-${cId}`;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'emblem-output-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.onclick = () => copyEmblemOutput(cId);
+    btnRow.appendChild(copyBtn);
+
+    const copyAllBtn = document.createElement('button');
+    copyAllBtn.className = 'emblem-output-btn';
+    copyAllBtn.textContent = 'Copy All';
+    copyAllBtn.onclick = () => copyAllEmblems(cId);
+    btnRow.appendChild(copyAllBtn);
+
+    btnRow.appendChild(feedbackSpan);
+    emblemOutputContainer.appendChild(emblemOutput);
+    emblemOutputContainer.appendChild(btnRow);
+    emblemContainer.appendChild(emblemOutputContainer);   // 4th grid cell
+
+    emblemSection.appendChild(emblemContainer);
+    page.appendChild(emblemSection);
+    
     content.appendChild(page);
+    updateEmblemOutput(cId);
   });
+}
+
+function updateEmblemOutput(cId) {
+  console.log(cId, document.getElementById(`emblem-output-${cId}`));
+  const outputEl = document.getElementById(`emblem-output-${cId}`);
+  if (!outputEl) return;
+
+  const lines = [];
+  for (let e = 0; e < 3; e++) {
+    const statIds = [];
+    const base = [101, 6001, 9401];
+    for (let s = 0; s < 4; s++) {
+      const key = `${cId}_${e}_${s}`;
+      const val = emblemStats[key];
+      if (val) 
+        statIds.push(val);
+      else
+        statIds.push(base[e])
+    }
+    if (statIds.filter(x => base.includes(x)).length != 4)
+      lines.push(`emblem ${cId} ${e + 1} ${statIds.join(' ')} @10001`);
+  }
+  outputEl.textContent = lines.length > 0 ? lines.join('\n')+'\n' : '—';
+}
+
+function tryAddEmblemLevel(charId, potId, potMap, allEmblemGroups) {
+  const info = potMap[potId];
+  if (!info) return false;
+  const { emblemIdx, typeId } = info;
+  const typeIdStr = String(typeId);
+  const groups = allEmblemGroups[emblemIdx];
+  if (!groups || !groups[typeIdStr]) return false;
+  const entries = groups[typeIdStr].entries;
+  if (!entries.length) return false;
+
+  // 1. Find a slot already using this stat group
+  let targetS = -1;
+  for (let s = 0; s < 4; s++) {
+    const key = `${charId}_${emblemIdx}_${s}`;
+    if (emblemStatGroups[key] === typeIdStr) {
+      targetS = s;
+      break;
+    }
+  }
+
+  // 2. If none, find an empty slot
+  if (targetS === -1) {
+    for (let s = 0; s < 4; s++) {
+      const key = `${charId}_${emblemIdx}_${s}`;
+      if (!emblemStatGroups[key] || emblemStatGroups[key] === '') {
+        targetS = s;
+        break;
+      }
+    }
+  }
+
+  if (targetS === -1) return false; // no suitable slot
+
+  const key = `${charId}_${emblemIdx}_${targetS}`;
+  emblemStatGroups[key] = typeIdStr;       // ensure group is set
+
+  const currentEntryId = emblemStats[key];
+  let currentLevel = 0;
+  if (currentEntryId) {
+    const cur = entries.find(e => String(e.id) === String(currentEntryId));
+    if (cur) currentLevel = cur.level;
+  }
+
+  const maxLevel = entries[entries.length - 1].level;
+  let nextLevel = currentLevel + 1;
+  if (nextLevel > maxLevel) nextLevel = maxLevel;
+
+  const nextEntry = entries.find(e => e.level === nextLevel);
+  if (nextEntry) {
+    emblemStats[key] = String(nextEntry.id);
+  }
+  return true;
+}
+
+function tryRemoveEmblemLevel(charId, potId, potMap, allEmblemGroups) {
+  const info = potMap[potId];
+  if (!info) return false;
+  const typeIdStr = String(info.typeId);
+
+  // Search across all emblems (prioritise Emblem 3 → 2 → 1)
+  for (let e = 2; e >= 0; e--) {
+    const groups = allEmblemGroups[e];
+    if (!groups || !groups[typeIdStr]) continue;
+    const entries = groups[typeIdStr].entries;
+
+    for (let s = 0; s < 4; s++) {
+      const key = `${charId}_${e}_${s}`;
+      if (emblemStatGroups[key] === typeIdStr) {
+        const currentEntryId = emblemStats[key];
+        if (!currentEntryId) continue;
+        const cur = entries.find(en => String(en.id) === String(currentEntryId));
+        if (!cur) continue;
+        const currentLevel = cur.level;
+
+        if (currentLevel <= 1) {
+          // Remove the stat completely
+          emblemStatGroups[key] = '';
+          emblemStats[key] = '';
+        } else {
+          const prevLevel = currentLevel - 1;
+          const prevEntry = entries.find(en => en.level === prevLevel);
+          if (prevEntry) {
+            emblemStats[key] = String(prevEntry.id);
+          }
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function copyEmblemOutput(cId) {
+  const outputEl = document.getElementById(`emblem-output-${cId}`);
+  if (!outputEl) return;
+  const txt = outputEl.textContent;
+  if (!txt || txt === '—') return;
+
+  navigator.clipboard.writeText(txt).then(() => {
+    const fb = document.getElementById(`emblem-feedback-${cId}`);
+    if (fb) {
+      fb.textContent = 'copied';
+      setTimeout(() => { fb.textContent = ''; }, 1500);
+    }
+  }).catch(() => {});
+}
+
+function copyAllEmblems(clickedCharId) {
+  const allLines = [];
+  selectedChars.forEach(cId => {
+    if (!cId) return;
+    const outEl = document.getElementById(`emblem-output-${cId}`);
+    if (outEl && outEl.textContent && outEl.textContent !== '—') {
+      allLines.push(outEl.textContent.trim());
+    }
+  });
+
+  if (allLines.length === 0) return;
+
+  const text = allLines.join('\n')+'\n';
+  navigator.clipboard.writeText(text).then(() => {
+    const fb = document.getElementById(`emblem-feedback-${clickedCharId}`);
+    if (fb) {
+      fb.textContent = 'copied all';
+      setTimeout(() => { fb.textContent = ''; }, 1500);
+    }
+  }).catch(() => {});
 }
 
 function formatDescriptionWithColor(desc) {
@@ -643,7 +1139,16 @@ function generate() {
   if (chars[0]) addPots(chars[0], ['mainCore','mainNormal','common']);
   for (let i = 1; i < chars.length; i++) addPots(chars[i], ['supportCore','supportNormal','common']);
   const seen = new Set();
-  potIds.forEach(id => { if (!seen.has(id)) { seen.add(id); const lvl = potLevels[id]||0; if (lvl > 0) parts.push(`${id}:${lvl}`); }});
+  potIds.forEach(id => { 
+    if (!seen.has(id)) { 
+      seen.add(id); 
+      const lvl = potLevels[id]||0; 
+      if (lvl > 0) {
+        const totalLevel = potLevels[id] + (emblemPotBonuses[id] || 0);
+        if (totalLevel > 0) parts.push(`${id}:${totalLevel}`);
+      }
+    }
+  });
 
   const elements = getRelevantElements();
   const elementNoteIds = new Set(Object.values(ELEMENT_NOTE));
@@ -865,6 +1370,37 @@ async function init() {
     const potLang = await fetchJSON(BASE_RAW + 'EN/language/en_US/Potential.json');
     potentialDesc = potLang;
   } catch(e) { console.warn('Could not load potential descriptions', e); }
+  try {
+    [emblemAttrData, itemData] = await Promise.all([
+      fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
+      fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
+    ]);
+  } catch(e) { console.warn('Could not load emblem attr data', e); }
+
+  // Inside init(), after the existing emblem data loads:
+  try {
+    [emblemAttrData, itemData] = await Promise.all([
+      fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
+      fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
+    ]);
+  } catch(e) { console.warn('Could not load emblem attr data', e); }
+
+  // Add this new try block right after:
+  try {
+    charGemAttrGroups = await fetchJSON('https://raw.githubusercontent.com/Melledy/Nebula/main/src/main/resources/defs/CharGemAttrGroups.json');
+    // Build TypeId → slot mapping (1,2,3)
+    for (const group of charGemAttrGroups) {
+      let slot = null;
+      const id = group.Id;
+      if (id >= 1 && id <= 4) slot = 1;
+      else if ((id >= 5 && id <= 8) || id === 11) slot = 2;
+      else if ((id >= 9 && id <= 10) || id === 12) slot = 3;
+      if (slot && Array.isArray(group.AttrTypes))
+        for (const typeId of group.AttrTypes)
+          typeIdToSlot[typeId] = slot;
+    }
+  } catch(e) { console.warn('Could not load CharGemAttrGroups', e); }
+
   preloadAllDiscImages();
 }
 
