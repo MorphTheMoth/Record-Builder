@@ -634,9 +634,9 @@ function generate() {
   const chars = selectedChars.filter(c => c);
   updateBase64();
   if (!chars.length) { out.textContent = '— select characters —'; out.style.color='#a66'; return; }
-  if (selectedDiscs.filter(d => d).length < 6) { out.textContent = '— select discs —'; out.style.color='#a66'; return; }
+  if (selectedDiscs.slice(0, 3).filter(d => d).length < 3) { out.textContent = '— select main discs —'; out.style.color='#a66'; return; }
 
-  let parts = ['build', ...chars, ...selectedDiscs];
+  let parts = ['build', ...chars, ...selectedDiscs.filter(id => id != null)];
 
   const potIds = [];
   const addPots = (cId, keys) => { const d = charJson[cId]; if (d?.potential) keys.forEach(k => (d.potential[k]||[]).forEach(p => potIds.push(p.id))); };
