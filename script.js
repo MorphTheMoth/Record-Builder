@@ -1144,7 +1144,7 @@ function generate() {
       seen.add(id); 
       const lvl = potLevels[id]||0; 
       if (lvl > 0) {
-        const totalLevel = potLevels[id] + (emblemPotBonuses[id] || 0);
+        const totalLevel = potLevels[id];
         if (totalLevel > 0) parts.push(`${id}:${totalLevel}`);
       }
     }
