@@ -113,7 +113,7 @@ function buildEmblemGroups(charId, isMain) {
 
     // Element‑specific stats
     if (AttrType === 12 && AttrTypeFirstSubtype >= 17 && AttrTypeFirstSubtype <= 28) {
-      const elements = ['Ventus', 'Ignis', 'Terra', 'Aqua', 'Lux', 'Umbra'];
+      const elements = ['Aqua', 'Ignis', 'Terra', 'Ventus', 'Lux', 'Umbra'];
       const suffix = AttrTypeFirstSubtype <= 22 ? 'Dmg %' : 'Pen';
       const elemIndex = (AttrTypeFirstSubtype - 17) % 6;
       const requiredElement = elements[elemIndex];
