@@ -4,5 +4,6 @@
 Stella Sora record builder supporting preset codes and emblems, meant to be used for [Nebula Private Server](https://github.com/Melledy/Nebula).
 
 
-<img width="1356" height="1805" alt="image" src="https://github.com/user-attachments/assets/445793f5-2ba1-4392-a3ff-4bb7e668d05d" />
+<img width="1253" height="1910" alt="image" src="https://github.com/user-attachments/assets/44e70079-f4b4-4a9b-ad22-b7186536c744" />
+
 
