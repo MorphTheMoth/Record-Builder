@@ -6,6 +6,37 @@ let selectedChars = [null, null, null];
 let selectedDiscs = ["212005", "211006", "211005", null, null, null];
 let potLevels = {};
 let noteCounts = {};
+let playerId = '10001';
+
+function saveState() {
+  const state = {
+    playerId,
+    selectedChars,
+    selectedDiscs,
+    potLevels: Object.fromEntries(Object.entries(potLevels).map(([k, v]) => [k, v])),
+    emblemStats: Object.fromEntries(Object.entries(emblemStats).map(([k, v]) => [k, v])),
+    emblemStatGroups: Object.fromEntries(Object.entries(emblemStatGroups).map(([k, v]) => [k, v])),
+    noteCounts: Object.fromEntries(Object.entries(noteCounts).map(([k, v]) => [k, v]))
+  };
+  localStorage.setItem('nebulaBuildState', JSON.stringify(state));
+}
+
+function loadState() {
+  const saved = localStorage.getItem('nebulaBuildState');
+  if (!saved) return;
+  try {
+    const state = JSON.parse(saved);
+    playerId = state.playerId || '10001';
+    selectedChars = state.selectedChars || [null, null, null];
+    selectedDiscs = state.selectedDiscs || ["212005", "211006", "211005", null, null, null];
+    potLevels = state.potLevels || {};
+    emblemStats = state.emblemStats || {};
+    emblemStatGroups = state.emblemStatGroups || {};
+    noteCounts = state.noteCounts || {};
+  } catch (e) {
+    console.warn('Failed to load state:', e);
+  }
+}
 let potentialDesc = {};
 let emblemStats = {};
 let emblemStatGroups = {};
@@ -701,7 +732,19 @@ function updatePotentials() {
 
     const emblemLabel = document.createElement('div');
     emblemLabel.className = 'emblem-section-label';
-    emblemLabel.textContent = 'Emblems';
+    emblemLabel.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+
+    const emblemLabelText = document.createElement('span');
+    emblemLabelText.textContent = 'Emblems';
+    emblemLabel.appendChild(emblemLabelText);
+
+    const clearEmblemBtn = document.createElement('button');
+    clearEmblemBtn.className = 'import-btn clear-btn';
+    clearEmblemBtn.textContent = 'Clear';
+    clearEmblemBtn.title = 'Reset all emblems for this character';
+    clearEmblemBtn.onclick = () => clearEmblems(cId);
+    emblemLabel.appendChild(clearEmblemBtn);
+
     emblemSection.appendChild(emblemLabel);
 
     const emblemContainer = document.createElement('div');
@@ -748,9 +791,10 @@ function updatePotentials() {
           const opt = document.createElement('option');
           opt.value = gk;
           opt.textContent = groups[gk].name;
-          if (gk === emblemStatGroups[key]) opt.selected = true;
           statSel.appendChild(opt);
         });
+        // Set value after all options are appended — more reliable than opt.selected = true
+        if (emblemStatGroups[key]) statSel.value = emblemStatGroups[key];
 
         const lvlSel = document.createElement('select');
         lvlSel.className = 'emblem-level-select';
@@ -764,9 +808,10 @@ function updatePotentials() {
             const opt = document.createElement('option');
             opt.value = String(entry.id);
             opt.textContent = groups[gk].isLevelup ? `+${entry.value}` : `${entry.value < 1 ? (entry.value*100)+"%" : entry.value}`;
-            if (String(entry.id) === String(emblemStats[key])) opt.selected = true;
             lvlSel.appendChild(opt);
           });
+          // Set value after all options are appended
+          if (emblemStats[key]) lvlSel.value = emblemStats[key];
         };
         fillLevelSel(emblemStatGroups[key]);
 
@@ -857,7 +902,7 @@ function updateEmblemOutput(cId) {
         statIds.push(base[e])
     }
     if (statIds.filter(x => base.includes(x)).length != 4)
-      lines.push(`emblem ${cId} ${e + 1} ${statIds.join(' ')} @10001`);
+      lines.push(`emblem ${cId} ${e + 1} ${statIds.join(' ')} @${playerId}`);
   }
   outputEl.textContent = lines.length > 0 ? lines.join('\n')+'\n' : '—';
 }
@@ -1162,8 +1207,9 @@ function generate() {
     if (cnt > 0) parts.push(`${id}:${cnt}`);
   });
 
-  parts.push('@10001');
+  parts.push('@' + playerId);
   out.textContent = parts.join(' ');
+  saveState();
   out.style.color = '#6a8a6a';
 }
 
@@ -1343,7 +1389,68 @@ document.addEventListener('DOMContentLoaded', () => {
     inp.addEventListener('paste', () => { setTimeout(importPotentials, 0); });
   }
   document.getElementById('copyOutputBtn')?.addEventListener('click', copyOutputText);
+
+  // Player ID input - value will be set in init() after loadState()
+  const playerIdInput = document.getElementById('playerIdInput');
+  if (playerIdInput) {
+    playerIdInput.addEventListener('input', () => {
+      playerId = playerIdInput.value;
+      saveState();
+      generate();
+    });
+  }
+
+
 });
+
+function clearDiscs() {
+  selectedDiscs = ["212005", "211006", "211005", null, null, null];
+  renderDiscs();
+  updateNotes();
+  saveState();
+  generate();
+}
+
+function clearPotentials() {
+  potLevels = {};
+  saveState();
+  updatePotentials();
+  generate();
+}
+
+function clearEmblems(cId) {
+  for (const key of Object.keys(emblemStats)) {
+    if (key.startsWith(cId + '_')) { emblemStats[key] = ''; emblemStatGroups[key] = ''; }
+  }
+  computeEmblemBonuses(cId);
+  saveState();
+  updatePotentials();
+  generate();
+}
+
+function clearNotes() {
+  noteCounts = {};
+  saveState();
+  updateNotes();
+  generate();
+}
+
+function clearAll() {
+  selectedChars = [null, null, null];
+  selectedDiscs = ["212005", "211006", "211005", null, null, null];
+  potLevels = {};
+  emblemStats = {};
+  emblemStatGroups = {};
+  emblemPotBonuses = {};
+  noteCounts = {};
+  activePotTab = 0;
+  saveState();
+  refreshCharBadges();
+  renderDiscs();
+  updateNotes();
+  updatePotentials();
+  generate();
+}
 
 async function preloadAllDiscImages() {
   if (discImagesPreloaded) return;
@@ -1363,9 +1470,17 @@ async function init() {
       fetchJSON(BASE_RAW + 'disc.json'),
       fetchJSON(BASE_RAW + 'character.json'),
     ]);
+    // Load saved state before rendering UI
+    loadState();
+    // Update player ID input with loaded value
+    const playerIdInput = document.getElementById('playerIdInput');
+    if (playerIdInput) playerIdInput.value = playerId;
     await renderChars();
     renderDiscs();
     updateNotes();
+    refreshCharBadges();
+    updatePotentials();
+    generate();
   } catch(e) {
     document.getElementById('charGrid').innerHTML = `<span class="err">Error loading data: ${e.message}</span>`;
   }
@@ -1380,15 +1495,6 @@ async function init() {
     ]);
   } catch(e) { console.warn('Could not load emblem attr data', e); }
 
-  // Inside init(), after the existing emblem data loads:
-  try {
-    [emblemAttrData, itemData] = await Promise.all([
-      fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
-      fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
-    ]);
-  } catch(e) { console.warn('Could not load emblem attr data', e); }
-
-  // Add this new try block right after:
   try {
     charGemAttrGroups = await fetchJSON('https://raw.githubusercontent.com/Melledy/Nebula/main/src/main/resources/defs/CharGemAttrGroups.json');
     // Build TypeId → slot mapping (1,2,3)
@@ -1404,7 +1510,15 @@ async function init() {
     }
   } catch(e) { console.warn('Could not load CharGemAttrGroups', e); }
 
+  // Recompute emblem bonuses from loaded state, then re-render potentials now that
+  // emblemAttrData + typeIdToSlot are fully loaded so dropdowns populate correctly.
+  selectedChars.filter(c => c).forEach(cId => computeEmblemBonuses(cId));
+  updatePotentials();
+  generate();
+
   preloadAllDiscImages();
 }
+
+
 
 init();

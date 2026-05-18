@@ -329,6 +329,8 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
   letter-spacing: 1px; white-space: nowrap; transition: background 0.1s; height: 32px;
 }
 .import-btn:hover { background: #2e2e2e; color: #ccc; }
+.clear-btn { color: #966; border-color: #4a3333; }
+.clear-btn:hover { background: #2e2222; color: #c88; border-color: #6a3333; }
 .import-status { font-size: 10px; font-weight: normal; }
 .import-status.ok { color: rgb(64, 125, 64); }
 .import-status.bad { color: rgb(129, 77, 77); }
@@ -338,7 +340,13 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
 
 <body>
 <div class="page">
-  <h1>SS Build Generator</h1>
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
+    <h1 style="margin: 0;">SS Build Generator</h1>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Player ID:</span>
+      <input id="playerIdInput" type="text" value="10001" style="width: 70px; background: #111; border: 1px solid #333; border-radius: 3px; padding: 4px 8px; color: #ccc; font-size: 11px; font-family: inherit; outline: none;">
+    </div>
+  </div>
 
   <div class="section">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -364,23 +372,37 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
   </div>
 
   <div class="section">
-    <h2>Characters</h2>
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span>Characters</span>
+      <button class="import-btn clear-btn" onclick="clearAll()" title="Reset all selections to defaults">Clear All</button>
+    </h2>
     <div class="char-grid" id="charGrid"><span class="loading">Loading characters…</span></div>
   </div>
 
   <div class="section">
-    <h2>Discs</h2>
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span>Discs</span>
+      <button class="import-btn clear-btn" onclick="clearDiscs()" title="Reset discs to defaults">Clear</button>
+    </h2>
     <div class="disc-row" id="discRow"><span class="loading">Loading discs…</span></div>
   </div>
 
   <div class="section" id="potSection" style="display:none">
-    <h2>Potentials</h2>
-    <div class="pot-tabs" id="potTabs"></div>
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span>Potentials</span>
+    </h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div class="pot-tabs" id="potTabs" style="margin-bottom:0"></div>
+      <button class="import-btn clear-btn" onclick="clearPotentials()" title="Reset all potentials and emblems">Clear</button>
+    </div>
     <div id="potContent"></div>
   </div>
 
   <div class="section" id="notesSection" style="display:none">
-    <h2>Notes</h2>
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span>Notes</span>
+      <button class="import-btn clear-btn" onclick="clearNotes()" title="Reset all notes to 20">Clear</button>
+    </h2>
     <div class="notes-grid" id="notesGrid"></div>
   </div>
 </div>
