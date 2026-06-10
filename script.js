@@ -1324,6 +1324,44 @@ function copyOutputText() {
   }).catch(() => {});
 }
 
+function copyAllOutputs() {
+  const parts = [];
+  
+  // Main Record Command output
+  const mainOutput = document.getElementById('output');
+  if (mainOutput && mainOutput.textContent && mainOutput.textContent !== '—') {
+    parts.push(mainOutput.textContent);
+  }
+  
+  // Disc output
+  const discOutput = document.getElementById('discOutputText');
+  if (discOutput && discOutput.textContent && discOutput.textContent !== '—') {
+    parts.push(discOutput.textContent);
+  }
+  
+  // All emblem outputs
+  const emblemOutputs = document.querySelectorAll('[id^="emblem-output-"]');
+  emblemOutputs.forEach(el => {
+    if (el.textContent && el.textContent !== '—') {
+      parts.push(el.textContent);
+    }
+  });
+  
+  if (parts.length === 0) return;
+  
+  const combined = parts.join('\n');
+  navigator.clipboard.writeText(combined).then(() => {
+    const statusSpan = document.getElementById('outputStatus');
+    if (outputTimeout) clearTimeout(outputTimeout);
+    statusSpan.textContent = 'All Copied';
+    statusSpan.style.color = '#6c6';
+    outputTimeout = setTimeout(() => {
+      statusSpan.textContent = '';
+      outputTimeout = null;
+    }, 1500);
+  }).catch(() => {});
+}
+
 let base64Timeout = null;
 
 function copyBase64() {
@@ -1481,6 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inp.addEventListener('paste', () => { setTimeout(importPotentials, 0); });
   }
   document.getElementById('copyOutputBtn')?.addEventListener('click', copyOutputText);
+  document.getElementById('copyAllOutputBtn')?.addEventListener('click', copyAllOutputs);
 
   // Player ID input - value will be set in init() after loadState()
   const playerIdInput = document.getElementById('playerIdInput');
