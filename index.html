@@ -185,10 +185,17 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
   font-family: inherit; height: 24px; outline: none; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
 }
 .pot-val:focus { background: #2a2a2a; }
+.priority-select {
+  background: #222; border: 1px solid rgb(58,58,58); border-radius: 2px; color: #bbb;
+  font-size: 11px; font-family: inherit; padding: 2px 4px; height: 24px;
+  cursor: pointer; outline: none; min-width: 72px;
+}
+.priority-select:hover { border-color: rgb(88,88,88); }
+.priority-select option { background: #1e1e1e; color: #bbb; }
 
 /* Potential tooltip */
 .pot-tooltip {
-  position: fixed;background: #1e1e1e;border: 1px solid #555;border-radius: 6px;padding: 10px;z-index: 200;
+  position: fixed;background: #1e1e1e;border: 1px solid #555;border-radius: 6px;padding: 10px;z-index: 10001;
   pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.6); display: flex; gap: 12px; max-width: 400px; 
   font-family: 'Consolas', monospace; font-size: 11px; line-height: 1.4; color: #ddd; backdrop-filter: blur(2px);
 }
@@ -383,6 +390,9 @@ body.modal-open { overflow:hidden; }
 </head>
 
 <body>
+<div id="preloadCover" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#161616;z-index:99999;display:flex;align-items:center;justify-content:center;">
+<div style="color:#555;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Loading…</div>
+</div>
 <div class="page">
   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
     <h1 style="margin: 0;">Nebula Record Builder</h1>
@@ -424,6 +434,21 @@ body.modal-open { overflow:hidden; }
     <div class="char-grid" id="charGrid"><span class="loading">Loading characters…</span></div>
   </div>
 
+  <div class="section" id="potSection" style="display:none">
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span>Potentials</span>
+    </h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div class="pot-tabs" id="potTabs" style="margin-bottom:0"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="import-btn" id="priorityToggle" onclick="togglePriorityMode()">Edit Priorities</button>
+        <button class="import-btn" onclick="renderRecordImage(packPotentials())" title="Open record preview">Preview Record</button>
+        <button class="import-btn clear-btn" onclick="clearPotentials()" title="Reset all potentials and emblems">Clear</button>
+      </div>
+    </div>
+    <div id="potContent"></div>
+  </div>
+
   <div class="section">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <span>Discs</span>
@@ -433,20 +458,6 @@ body.modal-open { overflow:hidden; }
       <div class="disc-row" id="discRow"><span class="loading">Loading discs…</span></div>
       <div class="disc-output-panel" id="discOutputPanel"></div>
     </div>
-  </div>
-
-  <div class="section" id="potSection" style="display:none">
-    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <span>Potentials</span>
-    </h2>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <div class="pot-tabs" id="potTabs" style="margin-bottom:0"></div>
-      <div>
-        <button class="import-btn" onclick="renderRecordImage(packPotentials())" style="margin-right:6px;" title="Open record preview">Preview Record</button>
-        <button class="import-btn clear-btn" onclick="clearPotentials()" title="Reset all potentials and emblems">Clear</button>
-      </div>
-    </div>
-    <div id="potContent"></div>
   </div>
 
   <div class="section" id="notesSection" style="display:none">
@@ -468,6 +479,7 @@ body.modal-open { overflow:hidden; }
       <div style="display:flex;gap:6px;">
         <button class="record-preview-close" onclick="downloadRecordSVG()">SVG</button>
         <button class="record-preview-close" onclick="downloadRecordPNG()">PNG</button>
+        <button class="record-preview-close" onclick="copyRecordLink()">Link</button>
         <button class="record-preview-close" onclick="hideRecordImage()">✕ Close</button>
       </div>
     </div>

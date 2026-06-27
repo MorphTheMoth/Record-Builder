@@ -48,6 +48,9 @@ let itemData = {};
 let emblemStatOptions = {};
 let emblemPotBonuses = {};
 let charGemAttrGroups = null;
+let priorityMode = false;
+let priorityMap = {};
+let pendingPrios = [];
 let typeIdToSlot = {};
 let discImagesPreloaded = false;
 
@@ -700,69 +703,78 @@ function updatePotentials() {
         const controls = document.createElement('div');
         controls.className = 'pot-controls';
 
-        const btnMinus = document.createElement('button');
-        btnMinus.className = 'pot-btn'; btnMinus.textContent = '−';
-
-        const inp = document.createElement('span');
-        inp.className = 'pot-val';
-        const bonus = emblemPotBonuses[p.id] || 0;
-        inp.textContent = bonus > 0 ? `${potLevels[p.id]}+${bonus}` : potLevels[p.id];
-        inp.type = 'number'; inp.min = 0; inp.max = maxLvl; inp.value = potLevels[p.id];
-        inp.oninput = () => {
-          potLevels[p.id] = Math.min(maxLvl, Math.max(0, +inp.value || 0));
-          item.classList.toggle('active', potLevels[p.id] > 0);
-          generate();
-        };
-
-        const btnPlus = document.createElement('button');
-        btnPlus.className = 'pot-btn'; btnPlus.textContent = '+';
-
-        const update = (val, diff) => {
-          // Clicked '+' when already at max → try to add emblem level
-          if (val === 6) {
-            if (diff === +1) {
-              if (tryAddEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
-                computeEmblemBonuses(cId);
-                updatePotentials();
-                generate();
-              }
-              return;
-            } else if (diff === -1) {  // Clicked '−' → try to remove an emblem level
-              if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
-                computeEmblemBonuses(cId);
-                updatePotentials();
-                generate();
+        if (priorityMode && potLevels[p.id]) {
+          const sel = document.createElement('select');
+          sel.className = 'priority-select';
+          const labels = ['', 'Core', 'High', 'Medium', 'Low', 'Optional'];
+          const vals   = ['', 'core', 'high', 'medium', 'low', 'optional'];
+          vals.forEach((v, i) => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = labels[i];
+            if (priorityMap[p.id] === v) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          sel.onchange = () => { priorityMap[p.id] = sel.value; };
+          controls.appendChild(sel);
+        } else if (priorityMode) {
+          // hide controls for non-selected pots
+        } else {
+          const btnMinus = document.createElement('button');
+          btnMinus.className = 'pot-btn'; btnMinus.textContent = '−';
+          const inp = document.createElement('span');
+          inp.className = 'pot-val';
+          const bonus = emblemPotBonuses[p.id] || 0;
+          inp.textContent = bonus > 0 ? `${potLevels[p.id]}+${bonus}` : potLevels[p.id];
+          inp.type = 'number'; inp.min = 0; inp.max = maxLvl; inp.value = potLevels[p.id];
+          inp.oninput = () => {
+            potLevels[p.id] = Math.min(maxLvl, Math.max(0, +inp.value || 0));
+            item.classList.toggle('active', potLevels[p.id] > 0);
+            generate();
+          };
+          const btnPlus = document.createElement('button');
+          btnPlus.className = 'pot-btn'; btnPlus.textContent = '+';
+          const update = (val, diff) => {
+            if (val === 6) {
+              if (diff === +1) {
+                if (tryAddEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+                  computeEmblemBonuses(cId);
+                  updatePotentials();
+                  generate();
+                }
                 return;
+              } else if (diff === -1) {
+                if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+                  computeEmblemBonuses(cId);
+                  updatePotentials();
+                  generate();
+                  return;
+                }
               }
             }
-          }
-          if (val === -diff) { 
-            if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
-              tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
-              tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
-              computeEmblemBonuses(cId);
-              updatePotentials();
+            if (val === -diff) {
+              if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
+                tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
+                tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)
+                computeEmblemBonuses(cId);
+                updatePotentials();
+              }
             }
-          }
-          // Normal level change
-          potLevels[p.id] = Math.min(maxLvl, Math.max(0, val+diff));
-          const b = emblemPotBonuses[p.id] || 0;
-          inp.textContent = b > 0 ? `${potLevels[p.id]}+${b}` : potLevels[p.id];
-          item.classList.toggle('active', potLevels[p.id] + b > 0);
-          computeEmblemBonuses(cId);
-          updatePotentials();
-          generate();
-        };
-
-        btnMinus.onclick = (e) => { e.stopPropagation(); update(potLevels[p.id], -1); };
-        btnPlus.onclick  = (e) => { e.stopPropagation(); update(potLevels[p.id], +1); };
-
-        item.onclick = (e) => {
-          if (e.target === btnMinus || e.target === btnPlus || e.target === inp) return;
-          update(potLevels[p.id], potLevels[p.id] > 0 ? -potLevels[p.id] : maxLvl);
-        };
-
-        controls.appendChild(btnMinus); controls.appendChild(inp); controls.appendChild(btnPlus);
+            potLevels[p.id] = Math.min(maxLvl, Math.max(0, val+diff));
+            const b = emblemPotBonuses[p.id] || 0;
+            inp.textContent = b > 0 ? `${potLevels[p.id]}+${b}` : potLevels[p.id];
+            item.classList.toggle('active', potLevels[p.id] + b > 0);
+            computeEmblemBonuses(cId);
+            updatePotentials();
+            generate();
+          };
+          btnMinus.onclick = (e) => { e.stopPropagation(); update(potLevels[p.id], -1); };
+          btnPlus.onclick  = (e) => { e.stopPropagation(); update(potLevels[p.id], +1); };
+          item.onclick = (e) => {
+            if (e.target === btnMinus || e.target === btnPlus || e.target === inp) return;
+            update(potLevels[p.id], potLevels[p.id] > 0 ? -potLevels[p.id] : maxLvl);
+          };
+          controls.appendChild(btnMinus); controls.appendChild(inp); controls.appendChild(btnPlus);
+        }
         item.appendChild(img); item.appendChild(nm); item.appendChild(controls);
         listDiv.appendChild(item);
 
@@ -1512,6 +1524,18 @@ function importPotentials() {
   }
 }
 
+function togglePriorityMode() {
+  priorityMode = !priorityMode;
+  const btn = document.getElementById('priorityToggle');
+  if (btn) {
+    btn.textContent = 'Edit Priorities';
+    btn.style.background = priorityMode ? '#3a3a3a' : '';
+    btn.style.borderColor = priorityMode ? '#ccc' : '';
+    btn.style.color = priorityMode ? '#fff' : '';
+  }
+  updatePotentials();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('importInput');
   if (inp) {
@@ -1623,8 +1647,11 @@ function renderRecordImage(b64) {
   const sectionColors = {
     core: 'rgba(255,120,180,0.55)',
     high: 'rgba(100,230,200,0.5)',
+    medium: 'rgba(200,200,80,0.5)',
     low: 'rgba(240,200,120,0.55)',
+    optional: 'rgba(150,150,150,0.45)',
   };
+  const groupKeys = ['core', 'high', 'medium', 'low', 'optional'];
 
   function findPotDef(ch, pid) {
     if (!ch?.potential) return null;
@@ -1647,6 +1674,23 @@ function renderRecordImage(b64) {
   const rows = [];
   let maxRowW = 0;
 
+  // Resolve pending short-ID priorities to full IDs (one-time)
+  if (pendingPrios.length) {
+    charIds.forEach((charId, slot) => {
+      const cfg = cfgMap[charId];
+      if (!cfg || !pendingPrios[slot]) return;
+      const allIds = [...(cfg.MasterSpecificPotentialIds||[]), ...(cfg.MasterNormalPotentialIds||[]),
+                       ...(cfg.AssistSpecificPotentialIds||[]), ...(cfg.AssistNormalPotentialIds||[]),
+                       ...(cfg.CommonPotentialIds||[])];
+      allIds.forEach(fullId => {
+        const shortId = String(fullId).slice(-2);
+        const prio = pendingPrios[slot][shortId];
+        if (prio) priorityMap[fullId] = prio;
+      });
+    });
+    pendingPrios = [];
+  }
+
   charIds.forEach((charId, slot) => {
     if (!charId || !charJson[charId]) return;
 
@@ -1668,10 +1712,14 @@ function renderRecordImage(b64) {
     });
     if (!allPots.length) return;
 
-    const groups = { core: [], high: [], low: [] };
+    const groups = { core: [], high: [], medium: [], low: [], optional: [] };
     allPots.forEach(p => {
-      if (p.level === 6 || p.level === 1) groups.core.push(p);
+      const prio = priorityMap[String(p.id)];
+      if (prio && groups[prio]) {
+        groups[prio].push(p);
+      } else if (p.level === 6 || p.level === 1) groups.core.push(p);
       else if (p.level >= 4) groups.high.push(p);
+      else if (p.level >= 3) groups.medium.push(p);
       else groups.low.push(p);
     });
 
@@ -1685,7 +1733,7 @@ function renderRecordImage(b64) {
     elements.push({ t: 'portrait', x, w: pbW, img: charImg, name, slot });
     x += pbW;
 
-    for (const key of ['core', 'high', 'low']) {
+    for (const key of groupKeys) {
       const items = groups[key];
       if (!items.length) continue;
       x += GG;
@@ -1725,7 +1773,7 @@ function renderRecordImage(b64) {
         svg += `<foreignObject x="${ex+RP}" y="${ry+RP}" width="${NW}" height="${PH}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${NW}px;height:${PH}px;display:flex;justify-content:center;"><div style="writing-mode:vertical-rl;font-size:20px;font-weight:700;color:#fff;line-height:0.85;font-family:sans-serif;">${el.key.charAt(0).toUpperCase()+el.key.slice(1)}</div></div></foreignObject>`;
         let ix = ex + RP + NW + IG;
         for (const p of el.items) {
-          svg += `<g transform="translate(${ix},${ry+RP})" clip-path="url(#c)"><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice"/></g>`;
+          svg += `<g data-id="${p.id}" transform="translate(${ix},${ry+RP})" clip-path="url(#c)"><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice"/></g>`;
           if (!['01','02','03','04','21','22','23','24'].includes(String(p.id).slice(-2)))
             svg += `<text x="${ix+15}" y="${ry+RP+16}" font-size="16" font-family="Consolas,monospace" font-weight="bold" fill="#568">${p.level}</text>`;
           ix += PW + IG;
@@ -1737,6 +1785,60 @@ function renderRecordImage(b64) {
   svg += `</svg>`;
 
   document.getElementById('recordImageContent').innerHTML = svg;
+
+  // Attach hover tooltips to potential icons in the SVG
+  let tt = document.querySelector('.pot-tooltip');
+  if (!tt) {
+    tt = document.createElement('div');
+    tt.className = 'pot-tooltip';
+    tt.style.display = 'none';
+    document.body.appendChild(tt);
+  }
+  const svgEl = document.querySelector('#recordImageContent svg');
+  if (svgEl) {
+    svgEl.querySelectorAll('[data-id]').forEach(el => {
+      let moveHandler = null;
+      const pid = el.getAttribute('data-id');
+      el.addEventListener('mouseenter', e => {
+        const tooltip = document.querySelector('.pot-tooltip');
+        if (!tooltip) return;
+        let def = null;
+        for (const key of Object.keys(charJson)) {
+          const c = charJson[key];
+          if (!c?.potential) continue;
+          for (const pk of ['mainCore','mainNormal','supportCore','supportNormal','common']) {
+            const arr = c.potential[pk];
+            if (!Array.isArray(arr)) continue;
+            const found = arr.find(p => String(p.id) === pid);
+            if (found) { def = found; break; }
+          }
+          if (def) break;
+        }
+        const bigImg = document.createElement('img');
+        bigImg.src = BASE_ASSETS + `potential/${pid}.webp`;
+        const descDiv = document.createElement('div');
+        descDiv.className = 'desc';
+        let rawDesc = def ? formatPotentialDesc(pid, def.params) : 'No description available.';
+        if (!rawDesc || rawDesc === 'No description available.') rawDesc = 'No detailed description found.';
+        rawDesc = formatDescriptionWithColor(rawDesc);
+        descDiv.innerHTML = rawDesc;
+        tooltip.innerHTML = '';
+        tooltip.appendChild(bigImg);
+        tooltip.appendChild(descDiv);
+        tooltip.style.display = 'flex';
+        const updatePos = ev => { tooltip.style.left = (ev.clientX + 15) + 'px'; tooltip.style.top = (ev.clientY + 15) + 'px'; };
+        updatePos(e);
+        window.addEventListener('mousemove', updatePos);
+        moveHandler = updatePos;
+      });
+      el.addEventListener('mouseleave', () => {
+        const tooltip = document.querySelector('.pot-tooltip');
+        if (tooltip) tooltip.style.display = 'none';
+        if (moveHandler) { window.removeEventListener('mousemove', moveHandler); moveHandler = null; }
+      });
+    });
+  }
+
   document.getElementById('recordImageOverlay').style.display = 'block';
   document.body.classList.add('modal-open');
 }
@@ -1799,26 +1901,48 @@ async function downloadRecordPNG() {
   img.src = url;
 }
 
+function copyRecordLink() {
+  const b64 = packPotentials();
+  const chars = selectedChars.filter(c => c);
+  const cfgMap = buildCfgMap(chars);
+  const keys = ['core', 'high', 'medium', 'low', 'optional'];
+  const slotStrs = [];
+  chars.forEach((cId, slot) => {
+    const cfg = cfgMap[cId];
+    if (!cfg) { slotStrs.push(''); return; }
+    const allIds = [...(cfg.MasterSpecificPotentialIds||[]), ...(cfg.MasterNormalPotentialIds||[]),
+                     ...(cfg.AssistSpecificPotentialIds||[]), ...(cfg.AssistNormalPotentialIds||[]),
+                     ...(cfg.CommonPotentialIds||[])];
+    const byPrio = {};
+    allIds.forEach(fullId => {
+      if (priorityMap[fullId]) {
+        const short = String(fullId).slice(-2);
+        (byPrio[priorityMap[fullId]] || (byPrio[priorityMap[fullId]] = [])).push(short);
+      }
+    });
+    const parts = keys.map(k => (byPrio[k] || []).join(','));
+    slotStrs.push(parts.join('-'));
+  });
+  const base = window.location.protocol + '//' + window.location.host + window.location.pathname;
+  let url = base + '?record-png=' + b64;
+  const prioStr = slotStrs.join('_');
+  if (prioStr.replace(/-/g, '')) url += '&priorities=' + prioStr;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('#recordImageOverlay .record-preview-header button:nth-child(3)');
+    if (btn) { const t = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = t, 1500); }
+  }).catch(() => alert('Failed to copy link.'));
+}
+
 function checkRecordImageParam() {
   const params = new URLSearchParams(window.location.search);
   const preview = params.get('record-preview');
   const image = params.get('record-image');
   if (preview) renderRecordImage(preview);
   if (image) {
+    document.getElementById('importInput').value = image;
+    importPotentials();
     renderRecordImage(image);
-    document.getElementById('recordImageOverlay').style.display = 'none';
-    document.body.classList.remove('modal-open');
-    const svgEl = document.querySelector('#recordImageContent svg');
-    if (svgEl) {
-      const svgData = new XMLSerializer().serializeToString(svgEl);
-      const b64 = btoa(unescape(encodeURIComponent(svgData)));
-      const dataUrl = `data:image/svg+xml;base64,${b64}`;
-      let og = document.querySelector('meta[property="og:image"]');
-      if (!og) { og = document.createElement('meta'); og.setAttribute('property', 'og:image'); document.head.appendChild(og); }
-      og.setAttribute('content', dataUrl);
-      document.title = 'Record Preview';
-      document.body.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#161616;">${svgEl.outerHTML}</div>`;
-    }
+    setTimeout(() => downloadRecordPNG(), 500);
   }
 }
 
@@ -1829,6 +1953,75 @@ async function init() {
       fetchJSON(BASE_RAW + 'disc.json'),
       fetchJSON(BASE_RAW + 'character.json'),
     ]);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const png = urlParams.get('record-png');
+    const prioStr = urlParams.get('priorities');
+    if (prioStr) {
+      const slotStrs = prioStr.split('_');
+      const keys = ['core', 'high', 'medium', 'low', 'optional'];
+      slotStrs.forEach((slotStr, slot) => {
+        const groups = slotStr.split('-');
+        const map = {};
+        groups.forEach((part, i) => {
+          if (i >= keys.length) return;
+          (part || '').split(',').filter(Boolean).forEach(id => {
+            map[id.trim()] = keys[i];
+          });
+        });
+        if (Object.keys(map).length) pendingPrios[slot] = map;
+      });
+    }
+
+    if (png) {
+      const editUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?record-preview=' + png + (prioStr ? '&priorities=' + prioStr : '');
+      document.getElementById('importInput').value = png;
+      importPotentials();
+      renderRecordImage(png);
+      setTimeout(async () => {
+        const svgEl = document.querySelector('#recordImageContent svg');
+        if (!svgEl) return;
+        const clone = svgEl.cloneNode(true);
+        const imgs = clone.querySelectorAll('image');
+        await Promise.all(Array.from(imgs).map(async el => {
+          const href = el.getAttribute('href');
+          if (!href || href.startsWith('data:')) return;
+          try {
+            const resp = await fetch(href);
+            const blob = await resp.blob();
+            const dataUrl = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
+            el.setAttribute('href', dataUrl);
+          } catch (e) { console.warn('PNG embed failed:', href, e); }
+        }));
+        const svgData = new XMLSerializer().serializeToString(clone);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        const blob = new Blob([svgData], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        img.onload = () => {
+          const scale = 2;
+          canvas.width = img.naturalWidth * scale;
+          canvas.height = img.naturalHeight * scale;
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(pngBlob => {
+            const pngUrl = URL.createObjectURL(pngBlob);
+            const cover = document.getElementById('preloadCover');
+            if (cover) cover.innerHTML = `<div style="position:fixed;top:0;left:0;right:0;height:36px;background:#1a1a1a;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 16px;z-index:10;"><a href="${editUrl}" style="background:#222;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;letter-spacing:1px;text-decoration:none;transition:background 0.1s;" onmouseover="this.style.background='#2e2e2e';this.style.color='#ccc'" onmouseout="this.style.background='#222';this.style.color='#aaa'">Edit</a></div><img src="${pngUrl}" style="display:block;margin:40px auto 0;max-width:100%;">`;
+          });
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); const cover = document.getElementById('preloadCover'); if (cover) cover.innerHTML = '<p style="color:red">PNG generation failed</p>'; };
+        img.src = url;
+      }, 500);
+      return;
+    }
+
+    // Remove the preload cover (not in PNG mode)
+    const cover = document.getElementById('preloadCover');
+    if (cover) cover.remove();
+
     // Load saved state before rendering UI
     loadState();
     // Update player ID input with loaded value
