@@ -1691,6 +1691,9 @@ function renderRecordImage(b64) {
     pendingPrios = [];
   }
 
+  const dividerH = 3;
+  const extraGap = 12;
+
   charIds.forEach((charId, slot) => {
     if (!charId || !charJson[charId]) return;
 
@@ -1743,7 +1746,8 @@ function renderRecordImage(b64) {
     }
 
     const ry = rows.length * (RH + RG);
-    rows.push({ elements, y: ry });
+    const yOff = rows.length > 0 ? extraGap + dividerH : 0;
+    rows.push({ elements, y: ry + yOff });
     maxRowW = Math.max(maxRowW, x);
   });
 
@@ -1754,7 +1758,12 @@ function renderRecordImage(b64) {
 
   const sp = 10;
   const svgW = maxRowW + sp * 2;
-  const svgH = rows.length * RH + (rows.length - 1) * RG + sp * 2;
+  let svgH = rows.length * RH + (rows.length - 1) * RG + sp * 2;
+  let dividerY = 0;
+  if (rows.length > 1) {
+    svgH += extraGap + dividerH;
+    dividerY = sp + RH + (RG + extraGap + dividerH) / 2;
+  }
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;height:auto;display:block;">
 <defs><clipPath id="c"><rect width="${PW}" height="${PH}" rx="4"/></clipPath></defs>
@@ -1780,6 +1789,10 @@ function renderRecordImage(b64) {
         }
       }
     }
+  }
+
+  if (dividerY > 0) {
+    svg += `<line x1="${sp}" y1="${dividerY}" x2="${sp + maxRowW}" y2="${dividerY}" stroke="#333" stroke-width="${dividerH}" stroke-linecap="round"/>`;
   }
 
   svg += `</svg>`;
@@ -1901,6 +1914,35 @@ async function downloadRecordPNG() {
   img.src = url;
 }
 
+function openRecordPNG() {
+  const b64 = packPotentials();
+  const chars = selectedChars.filter(c => c);
+  const cfgMap = buildCfgMap(chars);
+  const keys = ['core', 'high', 'medium', 'low', 'optional'];
+  const slotStrs = [];
+  chars.forEach((cId, slot) => {
+    const cfg = cfgMap[cId];
+    if (!cfg) { slotStrs.push(''); return; }
+    const allIds = [...(cfg.MasterSpecificPotentialIds||[]), ...(cfg.MasterNormalPotentialIds||[]),
+                     ...(cfg.AssistSpecificPotentialIds||[]), ...(cfg.AssistNormalPotentialIds||[]),
+                     ...(cfg.CommonPotentialIds||[])];
+    const byPrio = {};
+    allIds.forEach(fullId => {
+      if (priorityMap[fullId]) {
+        const short = String(fullId).slice(-2);
+        (byPrio[priorityMap[fullId]] || (byPrio[priorityMap[fullId]] = [])).push(short);
+      }
+    });
+    const parts = keys.map(k => (byPrio[k] || []).join(','));
+    slotStrs.push(parts.join('-'));
+  });
+  const base = window.location.protocol + '//' + window.location.host + window.location.pathname;
+  let url = base + '?record-png=' + b64;
+  const prioStr = slotStrs.join('_');
+  if (prioStr.replace(/-/g, '')) url += '&priorities=' + prioStr;
+  window.location.href = url;
+}
+
 function copyRecordLink() {
   const b64 = packPotentials();
   const chars = selectedChars.filter(c => c);
@@ -1937,7 +1979,11 @@ function checkRecordImageParam() {
   const params = new URLSearchParams(window.location.search);
   const preview = params.get('record-preview');
   const image = params.get('record-image');
-  if (preview) renderRecordImage(preview);
+  if (preview) {
+    document.getElementById('importInput').value = preview;
+    importPotentials();
+    renderRecordImage(preview);
+  }
   if (image) {
     document.getElementById('importInput').value = image;
     importPotentials();
@@ -2009,7 +2055,7 @@ async function init() {
           canvas.toBlob(pngBlob => {
             const pngUrl = URL.createObjectURL(pngBlob);
             const cover = document.getElementById('preloadCover');
-            if (cover) cover.innerHTML = `<div style="position:fixed;top:0;left:0;right:0;height:36px;background:#1a1a1a;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 16px;z-index:10;"><a href="${editUrl}" style="background:#222;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;letter-spacing:1px;text-decoration:none;transition:background 0.1s;" onmouseover="this.style.background='#2e2e2e';this.style.color='#ccc'" onmouseout="this.style.background='#222';this.style.color='#aaa'">Edit</a></div><img src="${pngUrl}" style="display:block;margin:40px auto 0;max-width:100%;">`;
+            if (cover) cover.innerHTML = `<div style="position:fixed;top:0;left:0;right:0;height:36px;background:#1a1a1a;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 16px;gap:8px;z-index:10;"><a href="${editUrl}" style="background:#222;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;letter-spacing:1px;text-decoration:none;transition:background 0.1s;" onmouseover="this.style.background='#2e2e2e';this.style.color='#ccc'" onmouseout="this.style.background='#222';this.style.color='#aaa'">Edit</a><a href="${pngUrl}" download="record.png" style="background:#222;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;letter-spacing:1px;text-decoration:none;transition:background 0.1s;" onmouseover="this.style.background='#2e2e2e';this.style.color='#ccc'" onmouseout="this.style.background='#222';this.style.color='#aaa'">Download</a></div><img src="${pngUrl}" style="display:block;margin:40px auto 0;max-width:100%;">`;
           });
         };
         img.onerror = () => { URL.revokeObjectURL(url); const cover = document.getElementById('preloadCover'); if (cover) cover.innerHTML = '<p style="color:red">PNG generation failed</p>'; };
