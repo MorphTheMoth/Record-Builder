@@ -399,6 +399,12 @@ body.modal-open { overflow:hidden; }
 .theme-select:hover { background-color:#2e2e2e; color:#ccc; border-color:#666; }
 .theme-select option { background:#1a1a1a; color:#ccc; }
 .theme-arrow { padding:6px 8px; line-height:1; }
+.record-title-input {
+  background:#222;border:1px solid #444;color:#aaa;padding:6px 10px;border-radius:3px;
+  font-size:12px;font-family:inherit;letter-spacing:1px;width:140px;outline:none;
+}
+.record-title-input:focus { border-color:#666; color:#ccc; }
+.record-title-input::placeholder { color:#555; }
 
 g[data-id].svg-drag-src { opacity:0.4; }
 
@@ -493,6 +499,7 @@ g[data-id].svg-drag-src { opacity:0.4; }
     <div class="record-preview-header">
       <h2 class="record-preview-title">Record Preview</h2>
       <div style="display:flex;gap:6px;">
+        <input type="text" id="recordTitle" class="record-title-input" placeholder="Record title..." value="" oninput="setRecordTitle(this.value)" maxlength="60">
         <button class="record-preview-close theme-arrow" onclick="prevTheme()" title="Previous theme">▲</button>
         <select class="record-preview-close theme-select" id="themeSelect" onchange="setTheme(this.value)"></select>
         <button class="record-preview-close theme-arrow" onclick="nextTheme()" title="Next theme">▼</button>

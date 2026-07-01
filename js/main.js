@@ -118,6 +118,8 @@ async function init() {
       const themeParam = urlParams.get('theme');
       if (themeParam) editUrl += '&theme=' + encodeURIComponent(themeParam);
       if (orderParam) editUrl += '&order=' + encodeURIComponent(orderParam);
+      const titleParam = urlParams.get('title');
+      if (titleParam) editUrl += '&title=' + encodeURIComponent(titleParam);
       document.getElementById('importInput').value = png;
       importPotentials();
       if (orderParam) resolveOrderFromParam(orderParam);

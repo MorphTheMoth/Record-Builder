@@ -1,4 +1,19 @@
 let currentThemeName = localStorage.getItem('nrb-theme') || 'dark';
+let currentTitle = localStorage.getItem('nrb-title') || '';
+
+function setRecordTitle(value) {
+  currentTitle = value;
+  localStorage.setItem('nrb-title', value);
+  const overlay = document.getElementById('recordImageOverlay');
+  if (overlay && overlay.style.display !== 'none') {
+    renderRecordImage(packPotentials());
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('recordTitle');
+  if (input) input.value = currentTitle;
+});
 
 function populateThemeSelect() {
   const sel = document.getElementById('themeSelect');
@@ -169,20 +184,25 @@ function renderRecordImage(b64) {
   }
 
   const sp = 10;
+  const titleH = currentTitle ? 64 : 0;
   const svgW = maxRowW + sp * 2;
-  let svgH = rows.length * RH + (rows.length - 1) * RG + sp * 2;
+  let svgH = titleH + rows.length * RH + (rows.length - 1) * RG + sp * 2;
   let dividerY = 0;
   if (rows.length > 1) {
     svgH += extraGap + dividerH;
-    dividerY = sp + RH + (RG + extraGap + dividerH) / 2;
+    dividerY = sp + RH + (RG + extraGap + dividerH) / 2 + titleH;
   }
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;height:auto;display:block;">
 <defs><clipPath id="c"><rect width="${PW}" height="${PH}" rx="4"/></clipPath></defs>
 <rect width="${svgW}" height="${svgH}" fill="${theme.svgBg}"/>`;
 
+  if (currentTitle) {
+    svg += `<text x="${sp + 20}" y="${titleH - 18}" font-size="36" font-weight="700" fill="${theme.titleColor}" font-family="sans-serif">${esc(currentTitle)}</text>`;
+  }
+
   for (const row of rows) {
-    const ry = row.y + sp;
+    const ry = titleH + row.y + sp;
     for (const el of row.elements) {
       const ex = el.x + sp;
       if (el.t === 'portrait') {
@@ -311,6 +331,7 @@ function buildRecordUrl() {
   let url = base + '?record-png=' + encodeURIComponent(b64);
   const prioStr = slotStrs.join('_');
   if (prioStr.replace(/-/g, '')) url += '&priorities=' + encodeURIComponent(prioStr);
+  if (currentTitle) url += '&title=' + encodeURIComponent(currentTitle);
   url += '&theme=' + encodeURIComponent(currentThemeName);
 
   const groupKeys = ['core', 'high', 'medium', 'low', 'optional'];
@@ -630,13 +651,19 @@ function enablePngHover(pngImg) {
 
 function checkRecordImageParam() {
   const params = new URLSearchParams(window.location.search);
+  const titleParam = params.get('title');
+  if (titleParam) {
+    currentTitle = titleParam;
+    localStorage.setItem('nrb-title', currentTitle);
+  }
   const themeParam = params.get('theme');
   if (themeParam && themes[themeParam]) {
     currentThemeName = themeParam;
   }
   const orderParam = params.get('order');
   const preview = params.get('record-preview');
-  const image = params.get('record-image');
+  const png = params.get('record-png');
+  const image = params.get('record-image') || png;
   if (preview) {
     document.getElementById('importInput').value = preview;
     importPotentials();
@@ -650,4 +677,7 @@ function checkRecordImageParam() {
     renderRecordImage(image);
     setTimeout(() => downloadRecordPNG(), 500);
   }
+
+  const titleInput = document.getElementById('recordTitle');
+  if (titleInput) titleInput.value = currentTitle;
 }
