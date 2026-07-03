@@ -227,11 +227,6 @@ function updatePotentials() {
           const update = (val, diff) => {
             if (val === 6) {
               if (diff === +1) {
-                if (tryAddEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
-                  computeEmblemBonuses(cId);
-                  updatePotentials();
-                  generate();
-                }
                 return;
               } else if (diff === -1) {
                 if (tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups)) {
