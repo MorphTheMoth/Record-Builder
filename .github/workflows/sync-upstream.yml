@@ -50,6 +50,10 @@ jobs:
           git checkout main
           git merge upstream/main --no-edit
 
+      - name: Preserve local README.md
+        if: steps.check.outputs.changed == 'true'
+        run: git checkout ORIG_HEAD -- README.md
+
       - name: Push changes
         if: steps.check.outputs.changed == 'true'
         run: git push origin main
