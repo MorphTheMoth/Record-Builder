@@ -24,7 +24,7 @@ const themes = {
       low: 'rgba(255,100,80,0.48)',
       optional: 'rgba(180,180,200,0.40)'
     },
-    titleColor: '#e0eaff',
+    titleColor: '#f0f4ff',
     dividerColor: '#1e2a40'
   },
   forest: {
@@ -38,7 +38,7 @@ const themes = {
       low: 'rgba(255,220,50,0.48)',
       optional: 'rgba(140,200,120,0.42)'
     },
-    titleColor: '#c8ffcc',
+    titleColor: '#f2fbf0',
     dividerColor: '#1a3a1a'
   },
   desert: {
@@ -52,7 +52,7 @@ const themes = {
       low: 'rgba(80,200,160,0.50)',
       optional: 'rgba(200,170,130,0.42)'
     },
-    titleColor: '#fff0d0',
+    titleColor: '#fdf6ee',
     dividerColor: '#3a2a14'
   },
   ocean: {
@@ -66,7 +66,7 @@ const themes = {
       low: 'rgba(120,220,255,0.48)',
       optional: 'rgba(80,160,200,0.42)'
     },
-    titleColor: '#d0f4ff',
+    titleColor: '#eef8ff',
     dividerColor: '#0a2040'
   },
   neon: {
@@ -94,7 +94,7 @@ const themes = {
       low: 'rgba(255,240,180,0.44)',
       optional: 'rgba(200,200,210,0.38)'
     },
-    titleColor: '#efefef',
+    titleColor: '#ffffff',
     dividerColor: '#2e2e32'
   },
   aurora: {
@@ -108,7 +108,7 @@ const themes = {
       low: 'rgba(180,255,100,0.48)',
       optional: 'rgba(80,160,200,0.42)'
     },
-    titleColor: '#d0fff0',
+    titleColor: '#eefffa',
     dividerColor: '#0c1e30'
   },
   crimson: {
@@ -122,7 +122,7 @@ const themes = {
       low: 'rgba(0,220,160,0.50)',
       optional: 'rgba(200,120,120,0.42)'
     },
-    titleColor: '#ffe0e0',
+    titleColor: '#fff0ee',
     dividerColor: '#3a1010'
   },
   obsidian: {
@@ -136,7 +136,7 @@ const themes = {
       low: 'rgba(255,200,80,0.48)',
       optional: 'rgba(160,160,200,0.40)'
     },
-    titleColor: '#e8e0ff',
+    titleColor: '#f4f0ff',
     dividerColor: '#1a1a28'
   },
   rose: {
@@ -150,7 +150,7 @@ const themes = {
       low: 'rgba(100,220,200,0.48)',
       optional: 'rgba(220,170,180,0.40)'
     },
-    titleColor: '#ffe8ec',
+    titleColor: '#fff2f5',
     dividerColor: '#2e1820'
   },
   copper: {
@@ -164,7 +164,7 @@ const themes = {
       low: 'rgba(60,200,160,0.50)',
       optional: 'rgba(200,160,100,0.42)'
     },
-    titleColor: '#ffe8c0',
+    titleColor: '#fdf3e6',
     dividerColor: '#2a1e0c'
   },
   ember: {
@@ -178,7 +178,7 @@ const themes = {
       low: 'rgba(80,220,120,0.50)',
       optional: 'rgba(220,140,100,0.42)'
     },
-    titleColor: '#ffdfcc',
+    titleColor: '#fff0e8',
     dividerColor: '#2c1206'
   },
   void: {
@@ -192,7 +192,7 @@ const themes = {
       low: 'rgba(120,255,200,0.46)',
       optional: 'rgba(160,160,210,0.40)'
     },
-    titleColor: '#f0f0ff',
+    titleColor: '#ffffff',
     dividerColor: '#0e0e18'
   },
   dusk: {
@@ -206,7 +206,7 @@ const themes = {
       low: 'rgba(0,220,220,0.48)',
       optional: 'rgba(180,120,200,0.40)'
     },
-    titleColor: '#f0d0ff',
+    titleColor: '#f8eeff',
     dividerColor: '#1e1030'
   },
   sundown: {
@@ -220,7 +220,7 @@ const themes = {
       low: 'rgba(80,220,120,0.50)',
       optional: 'rgba(220,130,120,0.42)'
     },
-    titleColor: '#fff0d0',
+    titleColor: '#fff2e6',
     dividerColor: '#280a10'
   },
   phantom: {
@@ -248,7 +248,7 @@ const themes = {
       low: 'rgba(160,255,160,0.48)',
       optional: 'rgba(80,190,170,0.42)'
     },
-    titleColor: '#c0fff8',
+    titleColor: '#eafffa',
     dividerColor: '#052824'
   },
   prussian: {
@@ -262,7 +262,7 @@ const themes = {
       low: 'rgba(200,240,80,0.48)',
       optional: 'rgba(80,160,200,0.42)'
     },
-    titleColor: '#c0e8ff',
+    titleColor: '#eaf6ff',
     dividerColor: '#0a2030'
   },
   midnight2: {
@@ -276,7 +276,7 @@ const themes = {
       low: 'rgba(0,255,200,0.50)',
       optional: 'rgba(140,150,230,0.42)'
     },
-    titleColor: '#d0d8ff',
+    titleColor: '#f0f0ff',
     dividerColor: '#10103a'
   },
   moss: {
@@ -290,7 +290,7 @@ const themes = {
       low: 'rgba(220,220,60,0.48)',
       optional: 'rgba(140,180,100,0.42)'
     },
-    titleColor: '#e0f0c0',
+    titleColor: '#f4fbe8',
     dividerColor: '#242a18'
   },
   steel: {
@@ -304,7 +304,7 @@ const themes = {
       low: 'rgba(240,230,120,0.48)',
       optional: 'rgba(140,180,210,0.42)'
     },
-    titleColor: '#d0e8ff',
+    titleColor: '#eef5ff',
     dividerColor: '#1e2830'
   },
   velvet: {
@@ -318,7 +318,7 @@ const themes = {
       low: 'rgba(0,220,255,0.50)',
       optional: 'rgba(180,80,220,0.42)'
     },
-    titleColor: '#f0d0ff',
+    titleColor: '#f8eeff',
     dividerColor: '#1e0c28'
   },
   infrared: {
@@ -332,7 +332,7 @@ const themes = {
       low: 'rgba(255,0,180,0.50)',
       optional: 'rgba(200,100,100,0.42)'
     },
-    titleColor: '#ffe0d0',
+    titleColor: '#fff0ee',
     dividerColor: '#220c0c'
   },
   sakura: {
@@ -346,7 +346,7 @@ const themes = {
       low: 'rgba(80,200,180,0.40)',
       optional: 'rgba(180,140,180,0.35)'
     },
-    titleColor: '#5c1a2e',
+    titleColor: '#1a0810',
     dividerColor: '#f5c0cc'
   },
   parchment: {
@@ -360,7 +360,7 @@ const themes = {
       low: 'rgba(60,140,180,0.42)',
       optional: 'rgba(160,140,120,0.36)'
     },
-    titleColor: '#2a1a08',
+    titleColor: '#160f04',
     dividerColor: '#d4c9a0'
   },
   slate: {
@@ -374,7 +374,7 @@ const themes = {
       low: 'rgba(0,180,140,0.40)',
       optional: 'rgba(120,140,180,0.34)'
     },
-    titleColor: '#1a2040',
+    titleColor: '#000000',
     dividerColor: '#dde2f0'
   },
   jade: {
@@ -388,7 +388,7 @@ const themes = {
       low: 'rgba(140,210,40,0.42)',
       optional: 'rgba(80,160,120,0.36)'
     },
-    titleColor: '#0a3020',
+    titleColor: '#071a10',
     dividerColor: '#c0ddc8'
   },
   lavender: {
@@ -402,7 +402,7 @@ const themes = {
       low: 'rgba(0,200,180,0.40)',
       optional: 'rgba(160,140,210,0.36)'
     },
-    titleColor: '#2a1060',
+    titleColor: '#120a26',
     dividerColor: '#ddd0f5'
   },
   glacier: {
@@ -416,7 +416,7 @@ const themes = {
       low: 'rgba(0,200,160,0.40)',
       optional: 'rgba(100,160,210,0.36)'
     },
-    titleColor: '#081840',
+    titleColor: '#000000',
     dividerColor: '#c0d8f0'
   },
   terracotta: {
@@ -430,7 +430,7 @@ const themes = {
       low: 'rgba(40,180,140,0.42)',
       optional: 'rgba(180,140,120,0.36)'
     },
-    titleColor: '#3a1408',
+    titleColor: '#1c0e04',
     dividerColor: '#e8ccbc'
   },
   mint: {
@@ -444,7 +444,7 @@ const themes = {
       low: 'rgba(120,220,80,0.42)',
       optional: 'rgba(80,180,160,0.36)'
     },
-    titleColor: '#083028',
+    titleColor: '#04160f',
     dividerColor: '#b8e8d8'
   },
   chalk: {
@@ -458,7 +458,7 @@ const themes = {
       low: 'rgba(200,140,40,0.40)',
       optional: 'rgba(140,140,150,0.34)'
     },
-    titleColor: '#1a1a1e',
+    titleColor: '#000000',
     dividerColor: '#e0e0dc'
   },
   harvest: {
@@ -472,7 +472,7 @@ const themes = {
       low: 'rgba(40,180,120,0.42)',
       optional: 'rgba(180,160,100,0.36)'
     },
-    titleColor: '#2a1800',
+    titleColor: '#180f00',
     dividerColor: '#e8d8b0'
   },
   blush: {
@@ -486,7 +486,7 @@ const themes = {
       low: 'rgba(60,200,200,0.40)',
       optional: 'rgba(210,160,180,0.36)'
     },
-    titleColor: '#4a1428',
+    titleColor: '#1e0a10',
     dividerColor: '#f0d0d8'
   },
   peach: {
@@ -500,7 +500,7 @@ const themes = {
       low: 'rgba(60,200,180,0.42)',
       optional: 'rgba(210,170,140,0.36)'
     },
-    titleColor: '#3a1808',
+    titleColor: '#1a0e04',
     dividerColor: '#f0d0b8'
   },
   nordic: {
@@ -514,7 +514,7 @@ const themes = {
       low: 'rgba(140,180,220,0.44)',
       optional: 'rgba(100,140,180,0.36)'
     },
-    titleColor: '#0a1e30',
+    titleColor: '#000000',
     dividerColor: '#ccd8e4'
   },
   limestone: {
@@ -528,7 +528,7 @@ const themes = {
       low: 'rgba(60,160,200,0.42)',
       optional: 'rgba(160,155,135,0.36)'
     },
-    titleColor: '#1c1808',
+    titleColor: '#000000',
     dividerColor: '#dcd8cc'
   },
   sand: {
@@ -542,7 +542,7 @@ const themes = {
       low: 'rgba(40,180,160,0.42)',
       optional: 'rgba(170,155,120,0.36)'
     },
-    titleColor: '#2c2008',
+    titleColor: '#140e02',
     dividerColor: '#e0d4b8'
   }
 };
