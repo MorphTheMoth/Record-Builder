@@ -12,7 +12,6 @@ function buildCurrentState() {
     emblemStatGroups: {...emblemStatGroups},
     potLevels: {...potLevels},
     priorityMap: {...priorityMap},
-    priorityMode,
     potOrder: JSON.parse(JSON.stringify(potOrder))
   };
 }
@@ -411,9 +410,7 @@ async function init() {
       if (extras.emblemStatGroups) emblemStatGroups = extras.emblemStatGroups;
       if (extras.potLevels) potLevels = extras.potLevels;
       if (extras.priorityMap) priorityMap = extras.priorityMap;
-      if (extras.priorityMode) priorityMode = true;
       if (extras.potOrder) potOrder = extras.potOrder;
-      fillDiscList();
       renderDiscOutput();
       renderDiscs();
       updateDiscOutputText();
