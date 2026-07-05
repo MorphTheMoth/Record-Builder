@@ -86,22 +86,6 @@ function renderRecordImage(b64) {
   const rows = [];
   let maxRowW = 0;
 
-  if (pendingPrios.length) {
-    charIds.forEach((charId, slot) => {
-      const cfg = cfgMap[charId];
-      if (!cfg || !pendingPrios[slot]) return;
-      const allIds = [...(cfg.MasterSpecificPotentialIds||[]), ...(cfg.MasterNormalPotentialIds||[]),
-                       ...(cfg.AssistSpecificPotentialIds||[]), ...(cfg.AssistNormalPotentialIds||[]),
-                       ...(cfg.CommonPotentialIds||[])];
-      allIds.forEach(fullId => {
-        const shortId = String(fullId).slice(-2);
-        const prio = pendingPrios[slot][shortId];
-        if (prio) priorityMap[fullId] = prio;
-      });
-    });
-    pendingPrios = [];
-  }
-
   const dividerH = 3;
   const extraGap = 12;
 
@@ -715,12 +699,14 @@ function checkRecordImageParam() {
   if (preview) {
     document.getElementById('importInput').value = preview;
     importPotentials();
+    applyPendingPrios();
     if (orderParam) resolveOrderFromParam(orderParam);
     renderRecordImage(preview);
   }
   if (image) {
     document.getElementById('importInput').value = image;
     importPotentials();
+    applyPendingPrios();
     if (orderParam) resolveOrderFromParam(orderParam);
     renderRecordImage(image);
     setTimeout(() => downloadRecordPNG(), 500);

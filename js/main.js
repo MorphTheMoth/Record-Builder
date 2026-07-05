@@ -318,6 +318,7 @@ async function init() {
       if (titleParam) editUrl += '&title=' + encodeURIComponent(titleParam);
       document.getElementById('importInput').value = png;
       importPotentials();
+      applyPendingPrios();
       if (orderParam) resolveOrderFromParam(orderParam);
       renderRecordImage(png);
       setTimeout(async () => {
@@ -363,7 +364,6 @@ async function init() {
     updateNotes();
     refreshCharBadges();
     updatePotentials();
-    applyPendingPrios();
     generate();
   } catch(e) {
     document.getElementById('charGrid').innerHTML = `<span class="err">Error loading data: ${e.message}</span>`;
