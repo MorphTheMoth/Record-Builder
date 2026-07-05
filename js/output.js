@@ -21,7 +21,7 @@ function cleanupPotOrder() {
 function generate() {
   cleanupPotOrder();
   const out = document.getElementById('output');
-  const chars = selectedChars.filter(c => c);
+  const chars = selectedChars.filter(c => c).slice(0, 3);
   updateBase64();
   if (!chars.length) { out.textContent = '— select characters —'; out.style.color='#a66'; return; }
   if (selectedDiscs.slice(0, 3).filter(d => d).length < 3) { out.textContent = '— select main discs —'; out.style.color='#a66'; return; }
@@ -150,13 +150,81 @@ function buildCfgMap(charIds) {
   return map;
 }
 
+function packPotLevels(charIds) {
+  const bits = [];
+  const writeBits = (val, n) => { for (let i = n-1; i >= 0; i--) bits.push((val >>> i) & 1); };
+
+  writeBits(charIds.length, 8);
+  charIds.forEach(id => writeBits(+id >>> 0, 32));
+
+  const cfgMap = buildCfgMap(charIds);
+  charIds.forEach(id => {
+    const cfg = cfgMap[+id];
+    if (!cfg) return;
+    const specIds  = cfg.AssistSpecificPotentialIds || [];
+    const normIds  = cfg.AssistNormalPotentialIds   || [];
+    const commIds  = cfg.CommonPotentialIds         || [];
+
+    specIds.forEach(pid => writeBits(potLevels[pid] > 0 ? 1 : 0, 1));
+    normIds.forEach(pid => writeBits(Math.min(7, potLevels[pid] || 0), 3));
+    commIds.forEach(pid => writeBits(Math.min(7, potLevels[pid] || 0), 3));
+  });
+
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let byte = 0;
+    for (let j = 0; j < 8; j++) byte = (byte << 1) | (bits[i+j] || 0);
+    bytes.push(byte & 0xFF);
+  }
+  return bytesToB64(new Uint8Array(bytes));
+}
+
+function unpackPotLevels(b64) {
+  const bytes = b64ToBytes(b64);
+  const bits = [];
+  for (const byte of bytes) for (let j = 7; j >= 0; j--) bits.push((byte >> j) & 1);
+
+  let idx = 0;
+  const readBits = n => {
+    let v = 0;
+    for (let i = n-1; i >= 0; i--) v += (bits[idx++] || 0) << i;
+    return v >>> 0;
+  };
+
+  const count = readBits(8);
+  const charIds = [];
+  for (let i = 0; i < count; i++) {
+    const id = readBits(32);
+    if (id !== 0 && !charJson[id]) throw new Error(`Unknown bonus character id ${id}`);
+    charIds.push(id);
+  }
+
+  const cfgMap = buildCfgMap(charIds.filter(id => id !== 0).map(String));
+  const potentials = {};
+
+  charIds.forEach(id => {
+    const cfg = cfgMap[id];
+    if (!cfg) return;
+    const specIds = cfg.AssistSpecificPotentialIds || [];
+    const normIds = cfg.AssistNormalPotentialIds   || [];
+    const commIds = cfg.CommonPotentialIds         || [];
+
+    specIds.forEach(pid => { const f = readBits(1); if (f) potentials[pid] = 1; });
+    normIds.forEach(pid => { const v = readBits(3); if (v) potentials[pid] = v; });
+    commIds.forEach(pid => { const v = readBits(3); if (v) potentials[pid] = v; });
+  });
+
+  return { charIds, potentials };
+}
+
 function packPotentials() {
+  const top3 = selectedChars.filter(c => c).slice(0, 3);
   const chars = [
-    selectedChars[0] ? +selectedChars[0] : 0,
-    selectedChars[1] ? +selectedChars[1] : 0,
-    selectedChars[2] ? +selectedChars[2] : 0,
+    top3[0] ? +top3[0] : 0,
+    top3[1] ? +top3[1] : 0,
+    top3[2] ? +top3[2] : 0,
   ];
-  const cfgMap = buildCfgMap(selectedChars.filter(c => c));
+  const cfgMap = buildCfgMap(top3);
 
   const bits = [];
   const writeBits = (val, n) => { for (let i = n-1; i >= 0; i--) bits.push((val >>> i) & 1); };
@@ -228,7 +296,7 @@ function importPotentials() {
   try {
     const { charIds, potentials } = unpackPotentials(raw);
     const validIds = charIds.map(String).filter(id => id !== '0' && charData[id]);
-    selectedChars = [validIds[0]||null, validIds[1]||null, validIds[2]||null];
+    selectedChars = validIds;
     Object.entries(potentials).forEach(([pid, lvl]) => { potLevels[+pid] = lvl; });
     refreshCharBadges();
     updatePotentials();

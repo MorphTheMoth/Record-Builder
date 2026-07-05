@@ -70,7 +70,29 @@ function renderRecordImage(b64) {
   const validIds = charIds.filter(id => id !== 0);
   if (!validIds.length) return;
 
-  const cfgMap = buildCfgMap(validIds.map(String));
+  // Include extra selected chars beyond the first 3
+  const extraIds = selectedChars.filter(c => c).slice(3).map(id => +id).filter(id => !validIds.includes(id));
+
+  // Merge potentials from base64 (first 3) with extras' levels from global state
+  const mergedPots = { ...potentials };
+  extraIds.forEach(cId => {
+    const ch = charJson[cId];
+    if (!ch?.potential) return;
+    const allPotIds = [
+      ...(ch.potential.mainCore || []).map(p => p.id),
+      ...(ch.potential.mainNormal || []).map(p => p.id),
+      ...(ch.potential.supportCore || []).map(p => p.id),
+      ...(ch.potential.supportNormal || []).map(p => p.id),
+      ...(ch.potential.common || []).map(p => p.id),
+    ];
+    allPotIds.forEach(pid => {
+      const lvl = potLevels[pid];
+      if (lvl > 0) mergedPots[pid] = lvl;
+    });
+  });
+
+  const allCharIds = [...validIds, ...extraIds];
+  const cfgMap = buildCfgMap(allCharIds.map(String));
 
   const theme = getTheme(currentThemeName);
   const sectionColors = theme.groups;
@@ -89,7 +111,7 @@ function renderRecordImage(b64) {
   const dividerH = 3;
   const extraGap = 12;
 
-  charIds.forEach((charId, slot) => {
+  allCharIds.forEach((charId, slot) => {
     if (!charId || !charJson[charId]) return;
 
     const ch = charJson[charId];
@@ -105,7 +127,7 @@ function renderRecordImage(b64) {
 
     const allPots = [];
     [...specIds, ...normIds, ...commIds].forEach(pid => {
-      const level = potentials[pid];
+      const level = mergedPots[pid];
       if (level && level > 0) allPots.push({ id: pid, level });
     });
     if (!allPots.length) return;
@@ -157,7 +179,7 @@ function renderRecordImage(b64) {
     }
 
     const ry = rows.length * (RH + RG);
-    const yOff = rows.length > 0 ? extraGap + dividerH : 0;
+    const yOff = (rows.length > 0 ? extraGap + dividerH : 0) + (rows.length >= 2 && allCharIds.length > 3 ? extraGap + dividerH : 0);
     rows.push({ elements, y: ry + yOff });
     maxRowW = Math.max(maxRowW, x);
   });
@@ -171,10 +193,14 @@ function renderRecordImage(b64) {
   const titleH = currentTitle ? 64 : 0;
   const svgW = maxRowW + sp * 2;
   let svgH = titleH + rows.length * RH + (rows.length - 1) * RG + sp * 2;
-  let dividerY = 0;
+  const dividerYs = [];
   if (rows.length > 1) {
     svgH += extraGap + dividerH;
-    dividerY = sp + RH + (RG + extraGap + dividerH) / 2 + titleH;
+    dividerYs.push(sp + RH + (RG + extraGap + dividerH) / 2 + titleH);
+  }
+  if (rows.length > 3) {
+    svgH += extraGap + dividerH;
+    dividerYs.push(sp + 2 * RH + RG + extraGap + dividerH + (RG + extraGap + dividerH) / 2 + titleH);
   }
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;height:auto;display:block;">
@@ -207,8 +233,8 @@ function renderRecordImage(b64) {
     }
   }
 
-  if (dividerY > 0) {
-    svg += `<line x1="${sp}" y1="${dividerY}" x2="${sp + maxRowW}" y2="${dividerY}" stroke="${theme.dividerColor}" stroke-width="${dividerH}" stroke-linecap="round"/>`;
+  for (const dy of dividerYs) {
+    svg += `<line x1="${sp}" y1="${dy}" x2="${sp + maxRowW}" y2="${dy}" stroke="${theme.dividerColor}" stroke-width="${dividerH}" stroke-linecap="round"/>`;
   }
 
   svg += `</svg>`;
@@ -291,13 +317,15 @@ async function downloadRecordPNG() {
 
 function buildRecordUrl() {
   const b64 = packPotentials();
-  const chars = selectedChars.filter(c => c);
+  const allChars = selectedChars.filter(c => c);
+  const chars = allChars.slice(0, 3);
+  const extras = allChars.slice(3);
   const cfgMap = buildCfgMap(chars);
   const keys = ['core', 'high', 'medium', 'low', 'optional'];
   const slotStrs = [];
-  chars.forEach((cId, slot) => {
-    const cfg = cfgMap[cId];
-    if (!cfg) { slotStrs.push(''); return; }
+  const buildPrioSlot = (cId) => {
+    const cfg = buildCfgMap([cId])[+cId];
+    if (!cfg) return '';
     const allIds = [...(cfg.MasterSpecificPotentialIds||[]), ...(cfg.MasterNormalPotentialIds||[]),
                      ...(cfg.AssistSpecificPotentialIds||[]), ...(cfg.AssistNormalPotentialIds||[]),
                      ...(cfg.CommonPotentialIds||[])];
@@ -308,15 +336,20 @@ function buildRecordUrl() {
         (byPrio[priorityMap[fullId]] || (byPrio[priorityMap[fullId]] = [])).push(short);
       }
     });
-    const parts = keys.map(k => (byPrio[k] || []).join(','));
-    slotStrs.push(parts.join('-'));
-  });
+    return keys.map(k => (byPrio[k] || []).join(',')).join('-');
+  };
+  chars.forEach(cId => slotStrs.push(buildPrioSlot(cId)));
+  extras.forEach(cId => slotStrs.push(buildPrioSlot(cId)));
   const base = window.location.protocol + '//' + window.location.host + window.location.pathname;
   let url = base + '?record-png=' + encodeURIComponent(b64);
   const prioStr = slotStrs.join('_');
   if (prioStr.replace(/-/g, '')) url += '&priorities=' + encodeURIComponent(prioStr);
   if (currentTitle) url += '&title=' + encodeURIComponent(currentTitle);
   url += '&theme=' + encodeURIComponent(currentThemeName);
+
+  if (extras.length) {
+    url += '&bonus-data=' + encodeURIComponent(packPotLevels(extras));
+  }
 
   const groupKeys = ['core', 'high', 'medium', 'low', 'optional'];
   const orderParts = [];
@@ -681,6 +714,20 @@ function enablePngHover(pngImg) {
   });
 }
 
+function applyBonusUnitsData(b64) {
+  if (!b64) return;
+  try {
+    const { charIds, potentials } = unpackPotLevels(b64);
+    const validIds = charIds.filter(id => id !== 0).map(String).filter(id => charData[id]);
+    validIds.forEach(id => {
+      if (!selectedChars.includes(id)) selectedChars.push(id);
+    });
+    Object.entries(potentials).forEach(([pid, lvl]) => { potLevels[+pid] = lvl; });
+  } catch(e) {
+    console.warn('Failed to apply bonus units:', e.message);
+  }
+}
+
 function checkRecordImageParam() {
   const params = new URLSearchParams(window.location.search.replace(/\+/g, '%2B'));
   const titleParam = params.get('title');
@@ -696,17 +743,23 @@ function checkRecordImageParam() {
   const preview = params.get('record-preview');
   const png = params.get('record-png');
   const image = params.get('record-image') || png;
+  const bonusData = params.get('bonus-data');
   if (preview) {
     document.getElementById('importInput').value = preview;
     importPotentials();
     applyPendingPrios();
+    applyBonusUnitsData(bonusData);
     if (orderParam) resolveOrderFromParam(orderParam);
     renderRecordImage(preview);
+    generate();
+    refreshCharBadges();
+    updatePotentials();
   }
   if (image) {
     document.getElementById('importInput').value = image;
     importPotentials();
     applyPendingPrios();
+    applyBonusUnitsData(bonusData);
     if (orderParam) resolveOrderFromParam(orderParam);
     renderRecordImage(image);
     setTimeout(() => downloadRecordPNG(), 500);
@@ -715,7 +768,7 @@ function checkRecordImageParam() {
   const titleInput = document.getElementById('recordTitle');
   if (titleInput) titleInput.value = currentTitle;
 
-  if (preview || image) {
+  if (bonusData || preview || image) {
     history.replaceState(null, '', window.location.pathname);
   }
 }
