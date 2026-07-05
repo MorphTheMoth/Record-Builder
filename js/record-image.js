@@ -70,7 +70,29 @@ function renderRecordImage(b64) {
   const validIds = charIds.filter(id => id !== 0);
   if (!validIds.length) return;
 
-  const cfgMap = buildCfgMap(validIds.map(String));
+  // Include extra selected chars beyond the first 3
+  const extraIds = selectedChars.filter(c => c).slice(3).map(id => +id).filter(id => !validIds.includes(id));
+
+  // Merge potentials from base64 (first 3) with extras' levels from global state
+  const mergedPots = { ...potentials };
+  extraIds.forEach(cId => {
+    const ch = charJson[cId];
+    if (!ch?.potential) return;
+    const allPotIds = [
+      ...(ch.potential.mainCore || []).map(p => p.id),
+      ...(ch.potential.mainNormal || []).map(p => p.id),
+      ...(ch.potential.supportCore || []).map(p => p.id),
+      ...(ch.potential.supportNormal || []).map(p => p.id),
+      ...(ch.potential.common || []).map(p => p.id),
+    ];
+    allPotIds.forEach(pid => {
+      const lvl = potLevels[pid];
+      if (lvl > 0) mergedPots[pid] = lvl;
+    });
+  });
+
+  const allCharIds = [...validIds, ...extraIds];
+  const cfgMap = buildCfgMap(allCharIds.map(String));
 
   const theme = getTheme(currentThemeName);
   const sectionColors = theme.groups;
@@ -89,7 +111,7 @@ function renderRecordImage(b64) {
   const dividerH = 3;
   const extraGap = 12;
 
-  charIds.forEach((charId, slot) => {
+  allCharIds.forEach((charId, slot) => {
     if (!charId || !charJson[charId]) return;
 
     const ch = charJson[charId];
@@ -105,7 +127,7 @@ function renderRecordImage(b64) {
 
     const allPots = [];
     [...specIds, ...normIds, ...commIds].forEach(pid => {
-      const level = potentials[pid];
+      const level = mergedPots[pid];
       if (level && level > 0) allPots.push({ id: pid, level });
     });
     if (!allPots.length) return;
@@ -157,7 +179,7 @@ function renderRecordImage(b64) {
     }
 
     const ry = rows.length * (RH + RG);
-    const yOff = rows.length > 0 ? extraGap + dividerH : 0;
+    const yOff = (rows.length > 0 ? extraGap + dividerH : 0) + (rows.length >= 2 && allCharIds.length > 3 ? extraGap + dividerH : 0);
     rows.push({ elements, y: ry + yOff });
     maxRowW = Math.max(maxRowW, x);
   });
@@ -171,10 +193,14 @@ function renderRecordImage(b64) {
   const titleH = currentTitle ? 64 : 0;
   const svgW = maxRowW + sp * 2;
   let svgH = titleH + rows.length * RH + (rows.length - 1) * RG + sp * 2;
-  let dividerY = 0;
+  const dividerYs = [];
   if (rows.length > 1) {
     svgH += extraGap + dividerH;
-    dividerY = sp + RH + (RG + extraGap + dividerH) / 2 + titleH;
+    dividerYs.push(sp + RH + (RG + extraGap + dividerH) / 2 + titleH);
+  }
+  if (rows.length > 3) {
+    svgH += extraGap + dividerH;
+    dividerYs.push(sp + 2 * RH + RG + extraGap + dividerH + (RG + extraGap + dividerH) / 2 + titleH);
   }
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;height:auto;display:block;">
@@ -207,8 +233,8 @@ function renderRecordImage(b64) {
     }
   }
 
-  if (dividerY > 0) {
-    svg += `<line x1="${sp}" y1="${dividerY}" x2="${sp + maxRowW}" y2="${dividerY}" stroke="${theme.dividerColor}" stroke-width="${dividerH}" stroke-linecap="round"/>`;
+  for (const dy of dividerYs) {
+    svg += `<line x1="${sp}" y1="${dy}" x2="${sp + maxRowW}" y2="${dy}" stroke="${theme.dividerColor}" stroke-width="${dividerH}" stroke-linecap="round"/>`;
   }
 
   svg += `</svg>`;
@@ -291,7 +317,7 @@ async function downloadRecordPNG() {
 
 function buildRecordUrl() {
   const b64 = packPotentials();
-  const chars = selectedChars.filter(c => c);
+  const chars = selectedChars.filter(c => c).slice(0, 3);
   const cfgMap = buildCfgMap(chars);
   const keys = ['core', 'high', 'medium', 'low', 'optional'];
   const slotStrs = [];

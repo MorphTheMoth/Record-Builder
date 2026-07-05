@@ -55,7 +55,7 @@ function refreshCharBadges() {
     let badge = card.querySelector('.slot-badge');
     if (slotIdx >= 0) {
       if (!badge) { badge = document.createElement('span'); badge.className = 'slot-badge'; card.appendChild(badge); }
-      badge.textContent = `#${slotIdx+1}`;
+      badge.textContent = slotIdx < 3 ? `#${slotIdx + 1}` : '+';
     } else {
       if (badge) badge.remove();
     }
@@ -65,13 +65,9 @@ function refreshCharBadges() {
 function toggleChar(id) {
   const idx = selectedChars.indexOf(id);
   if (idx >= 0) {
-    selectedChars[idx] = null;
-    const clean = selectedChars.filter(x => x !== null);
-    selectedChars = [clean[0]||null, clean[1]||null, clean[2]||null];
+    selectedChars.splice(idx, 1);
   } else {
-    const free = selectedChars.indexOf(null);
-    if (free === -1) return;
-    selectedChars[free] = id;
+    selectedChars.push(id);
   }
   refreshCharBadges();
   updatePotentials();

@@ -21,7 +21,7 @@ function cleanupPotOrder() {
 function generate() {
   cleanupPotOrder();
   const out = document.getElementById('output');
-  const chars = selectedChars.filter(c => c);
+  const chars = selectedChars.filter(c => c).slice(0, 3);
   updateBase64();
   if (!chars.length) { out.textContent = '— select characters —'; out.style.color='#a66'; return; }
   if (selectedDiscs.slice(0, 3).filter(d => d).length < 3) { out.textContent = '— select main discs —'; out.style.color='#a66'; return; }
@@ -151,12 +151,13 @@ function buildCfgMap(charIds) {
 }
 
 function packPotentials() {
+  const top3 = selectedChars.filter(c => c).slice(0, 3);
   const chars = [
-    selectedChars[0] ? +selectedChars[0] : 0,
-    selectedChars[1] ? +selectedChars[1] : 0,
-    selectedChars[2] ? +selectedChars[2] : 0,
+    top3[0] ? +top3[0] : 0,
+    top3[1] ? +top3[1] : 0,
+    top3[2] ? +top3[2] : 0,
   ];
-  const cfgMap = buildCfgMap(selectedChars.filter(c => c));
+  const cfgMap = buildCfgMap(top3);
 
   const bits = [];
   const writeBits = (val, n) => { for (let i = n-1; i >= 0; i--) bits.push((val >>> i) & 1); };
@@ -228,7 +229,7 @@ function importPotentials() {
   try {
     const { charIds, potentials } = unpackPotentials(raw);
     const validIds = charIds.map(String).filter(id => id !== '0' && charData[id]);
-    selectedChars = [validIds[0]||null, validIds[1]||null, validIds[2]||null];
+    selectedChars = validIds;
     Object.entries(potentials).forEach(([pid, lvl]) => { potLevels[+pid] = lvl; });
     refreshCharBadges();
     updatePotentials();

@@ -239,7 +239,7 @@ function clearNotes(resetNotesCount) {
 }
 
 function clearAll() {
-  selectedChars = [null, null, null];
+  selectedChars = [];
   selectedDiscs = ["212005", "211006", "211005", null, null, null];
   discCopies = {};
   potLevels = {};

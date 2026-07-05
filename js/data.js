@@ -2,7 +2,7 @@ const BASE_RAW = 'https://raw.githubusercontent.com/AutumnVN/StellaSoraData/main
 const BASE_ASSETS = 'https://raw.githubusercontent.com/AutumnVN/ssassets/main/';
 
 let charData = {}, discData = {}, charJson = {};
-let selectedChars = [null, null, null];
+let selectedChars = [];
 let selectedDiscs = ["212005", "211006", "211005", null, null, null];
 let potLevels = {};
 let noteCounts = {};
@@ -88,7 +88,7 @@ function loadState() {
   try {
     const state = JSON.parse(saved);
     playerId = state.playerId || '10001';
-    selectedChars = state.selectedChars || [null, null, null];
+    selectedChars = (state.selectedChars || []).filter(c => c != null);
     selectedDiscs = state.selectedDiscs || ["212005", "211006", "211005", null, null, null];
     potLevels = state.potLevels || {};
     emblemStats = state.emblemStats || {};
@@ -165,7 +165,7 @@ function formatPotentialDesc(id, params) {
 
 function getTeamElements() {
   const els = new Set();
-  selectedChars.forEach(id => { if (id && charJson[id]?.element) els.add(charJson[id].element); });
+  selectedChars.filter(c => c).slice(0, 3).forEach(id => { if (id && charJson[id]?.element) els.add(charJson[id].element); });
   selectedDiscs.forEach(id => { if (id && discData[id]?.element) els.add(discData[id].element); });
   return els;
 }
@@ -176,7 +176,7 @@ function getRelevantElements() {
     const d = selectedDiscs[i];
     if (d && discData[d]) elements.add(discData[d].element);
   }
-  selectedChars.forEach(id => {
+  selectedChars.filter(c => c).slice(0, 3).forEach(id => {
     if (id && charJson[id]?.element) elements.add(charJson[id].element);
   });
   return elements;
