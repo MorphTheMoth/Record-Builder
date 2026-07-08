@@ -372,23 +372,27 @@ async function init() {
     document.getElementById('charGrid').innerHTML = `<span class="err">Error loading data: ${e.message}</span>`;
   }
   try {
-    [emblemAttrData, itemData] = await Promise.all([
-      fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
-      fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
-    ]);
+    if (typeof VANILLA_MODE === 'undefined' || !VANILLA_MODE) {
+      [emblemAttrData, itemData] = await Promise.all([
+        fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
+        fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
+      ]);
+    }
   } catch(e) { console.warn('Could not load emblem attr data', e); }
 
   try {
-    const charGemAttrGroups = await fetchJSON('https://raw.githubusercontent.com/Melledy/Nebula/main/src/main/resources/defs/CharGemAttrGroups.json');
-    for (const group of charGemAttrGroups) {
-      let slot = null;
-      const id = group.Id;
-      if (id >= 1 && id <= 4) slot = 1;
-      else if ((id >= 5 && id <= 8) || id === 11) slot = 2;
-      else if ((id >= 9 && id <= 10) || id === 12) slot = 3;
-      if (slot && Array.isArray(group.AttrTypes))
-        for (const typeId of group.AttrTypes)
-          typeIdToSlot[typeId] = slot;
+    if (typeof VANILLA_MODE === 'undefined' || !VANILLA_MODE) {
+      const charGemAttrGroups = await fetchJSON('https://raw.githubusercontent.com/Melledy/Nebula/main/src/main/resources/defs/CharGemAttrGroups.json');
+      for (const group of charGemAttrGroups) {
+        let slot = null;
+        const id = group.Id;
+        if (id >= 1 && id <= 4) slot = 1;
+        else if ((id >= 5 && id <= 8) || id === 11) slot = 2;
+        else if ((id >= 9 && id <= 10) || id === 12) slot = 3;
+        if (slot && Array.isArray(group.AttrTypes))
+          for (const typeId of group.AttrTypes)
+            typeIdToSlot[typeId] = slot;
+      }
     }
   } catch(e) { console.warn('Could not load CharGemAttrGroups', e); }
 
