@@ -444,6 +444,13 @@ body.modal-open { overflow:hidden; }
 
 g[data-id].svg-drag-src { opacity:0.4; }
 
+/* Vanilla Mode: show only Preset Code, Characters, Potentials */
+body.vanilla-mode #recordCommandSection,
+body.vanilla-mode #discsSection,
+body.vanilla-mode #notesSection,
+body.vanilla-mode .vanilla-hide,
+body.vanilla-mode .emblem-section { display: none !important; }
+
 @media (max-width: 600px) {
   .page { padding: 12px; }
   .import-btn { padding: 6px 10px; font-size: 10px; }
@@ -464,19 +471,24 @@ g[data-id].svg-drag-src { opacity:0.4; }
 </head>
 
 <body>
+<script>
+// Set this to true to hide Record Command, Discs, Notes, and Emblems
+const VANILLA_MODE = true;
+if (VANILLA_MODE) document.body.classList.add('vanilla-mode');
+</script>
 <div id="preloadCover" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#161616;z-index:99999;display:flex;align-items:center;justify-content:center;">
 <div style="color:#555;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Loading…</div>
 </div>
 <div class="page">
   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; flex-wrap: wrap; gap: 8px;">
     <h1 style="margin: 0;">Nebula Record Builder</h1>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="vanilla-hide" style="display: flex; align-items: center; gap: 8px;">
       <span style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Player ID:</span>
       <input id="playerIdInput" type="text" value="10001" style="width: 70px; background: #111; border: 1px solid #333; border-radius: 3px; padding: 4px 8px; color: #ccc; font-size: 11px; font-family: inherit; outline: none;">
     </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="recordCommandSection">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <span>Record Command</span>
       <span id="outputStatus" style="font-size: 10px; color: #6c6;"></span>
@@ -529,7 +541,7 @@ g[data-id].svg-drag-src { opacity:0.4; }
     <div id="potContent"></div>
   </div>
 
-  <div class="section">
+  <div class="section" id="discsSection">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <span>Discs</span>
       <button class="import-btn clear-btn" onclick="clearDiscs()" title="Reset discs to defaults">Clear</button>
