@@ -471,11 +471,6 @@ body.vanilla-mode .emblem-section { display: none !important; }
 </head>
 
 <body>
-<script>
-// Set this to true to hide Record Command, Discs, Notes, and Emblems
-const VANILLA_MODE = true;
-if (VANILLA_MODE) document.body.classList.add('vanilla-mode');
-</script>
 <div id="preloadCover" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#161616;z-index:99999;display:flex;align-items:center;justify-content:center;">
 <div style="color:#555;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Loading…</div>
 </div>
@@ -583,5 +578,14 @@ if (VANILLA_MODE) document.body.classList.add('vanilla-mode');
   </div>
 </div>
 
+<script>
+// Set this to true to hide Record Command, Discs, Notes, and Emblems
+const VANILLA_MODE = true;
+if (VANILLA_MODE) {
+  document.body.classList.add('vanilla-mode');
+  document.title = 'Stella Sora Record Builder';
+  document.querySelector('h1').textContent = 'Stella Sora Record Builder';
+}
+</script>
 </body>
 </html>
