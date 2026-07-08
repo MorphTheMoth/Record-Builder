@@ -194,6 +194,7 @@ function escHtml(s) {
 
 function preloadAllDiscImages() {
   if (discImagesPreloaded) return;
+  if (typeof VANILLA_MODE !== 'undefined' && VANILLA_MODE) return;
   const ids = Object.keys(discData);
   for (const id of ids) {
     const imgId = String(id).slice(2);
