@@ -318,6 +318,12 @@ async function init() {
       if (orderParam) editUrl += '&order=' + encodeURIComponent(orderParam);
       const titleParam = urlParams.get('title');
       if (titleParam) editUrl += '&title=' + encodeURIComponent(titleParam);
+      currentTitle = '';
+      currentThemeName = 'dark';
+      const titleP = urlParams.get('title');
+      if (titleP) setRecordTitle(titleP);
+      const themeP = urlParams.get('theme');
+      if (themeP && themes[themeP]) currentThemeName = themeP;
       document.getElementById('importInput').value = png;
       importPotentials();
       applyPendingPrios();
