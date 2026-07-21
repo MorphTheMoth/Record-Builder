@@ -285,6 +285,7 @@ async function svgToPngBlob(svgEl) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const img = new Image();
+  img.crossOrigin = 'anonymous';
   const blob = new Blob([svgData], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   return new Promise((resolve, reject) => {
