@@ -731,20 +731,24 @@ function applyBonusUnitsData(b64) {
 
 function checkRecordImageParam() {
   const params = new URLSearchParams(window.location.search.replace(/\+/g, '%2B'));
-  const titleParam = params.get('title');
-  if (titleParam) {
-    currentTitle = titleParam;
-    localStorage.setItem('nrb-title', currentTitle);
-  }
-  const themeParam = params.get('theme');
-  if (themeParam && themes[themeParam]) {
-    currentThemeName = themeParam;
-  }
   const orderParam = params.get('order');
   const preview = params.get('record-preview');
   const png = params.get('record-png');
   const image = params.get('record-image') || png;
   const bonusData = params.get('bonus-data');
+  const titleParam = params.get('title');
+  const themeParam = params.get('theme');
+  if (preview || image) {
+    currentTitle = '';
+    currentThemeName = 'dark';
+    if (titleParam) {
+      currentTitle = titleParam;
+      localStorage.setItem('nrb-title', currentTitle);
+    }
+    if (themeParam && themes[themeParam]) {
+      currentThemeName = themeParam;
+    }
+  }
   if (preview) {
     document.getElementById('importInput').value = preview;
     importPotentials();

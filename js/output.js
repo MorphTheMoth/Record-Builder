@@ -68,7 +68,7 @@ function copyOutputText() {
   const txt = out.textContent;
   if (!txt || txt === '—') return;
 
-  navigator.clipboard.writeText(txt+'\n').then(() => {
+  navigator.clipboard.writeText(txt.replace(/\r?\n/g, '\r\n') + '\r\n').then(() => {
     const statusSpan = document.getElementById('outputStatus');
     if (outputTimeout) clearTimeout(outputTimeout);
     statusSpan.textContent = 'Copied';
@@ -102,7 +102,7 @@ function copyAllOutputs() {
 
   if (parts.length === 0) return;
 
-  const combined = parts.join('\n');
+  const combined = parts.join('\r\n').replace(/\r?\n/g, '\r\n');
   navigator.clipboard.writeText(combined).then(() => {
     const statusSpan = document.getElementById('outputStatus');
     if (outputTimeout) clearTimeout(outputTimeout);
