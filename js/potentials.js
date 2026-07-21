@@ -598,7 +598,7 @@ function copyAllEmblems(clickedCharId) {
 
   if (allLines.length === 0) return;
 
-  copyToClipboard(allLines.join('\n')+'\n', `emblem-feedback-${clickedCharId}`, 'copied all');
+  copyToClipboard(allLines.join('\r\n')+'\r\n', `emblem-feedback-${clickedCharId}`, 'copied all');
 }
 
 function togglePriorityMode() {

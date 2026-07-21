@@ -101,7 +101,7 @@ function loadState() {
 }
 
 function copyToClipboard(text, feedbackId, msg = 'copied') {
-  navigator.clipboard.writeText(text).then(() => {
+  navigator.clipboard.writeText(text.replace(/\r?\n/g, '\r\n')).then(() => {
     const fb = document.getElementById(feedbackId);
     if (fb) { fb.textContent = msg; setTimeout(() => { fb.textContent = ''; }, 1500); }
   }).catch(() => {});
