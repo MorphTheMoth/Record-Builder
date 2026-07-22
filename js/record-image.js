@@ -104,6 +104,10 @@ function renderRecordImage(b64) {
   const SCL = 1.08, SW = Math.round(PW * SCL), SH = Math.round(PH * SCL), SO = Math.round(-(SW - PW) / 2);
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function vertText(x, y, str, color) {
+    const title = str.replace(/\b\w/g, c => c.toUpperCase());
+    return `<text transform="translate(${x},${y}) rotate(90)" text-anchor="start" dominant-baseline="hanging" font-size="20" font-weight="900" fill="${color}" font-family="DejaVu Sans, sans-serif">${esc(title)}</text>`;
+  }
 
   const rows = [];
   let maxRowW = 0;
@@ -208,7 +212,7 @@ function renderRecordImage(b64) {
 <rect width="${svgW}" height="${svgH}" fill="${theme.svgBg}"/>`;
 
   if (currentTitle) {
-    svg += `<text x="${sp + 20}" y="${titleH - 18}" font-size="36" font-weight="700" fill="${theme.titleColor}" font-family="sans-serif">${esc(currentTitle)}</text>`;
+    svg += `<text x="${sp + 20}" y="${titleH - 18}" font-size="36" font-weight="900" fill="${theme.titleColor}" font-family="DejaVu Sans, sans-serif">${esc(currentTitle)}</text>`;
   }
 
   for (const row of rows) {
@@ -218,10 +222,10 @@ function renderRecordImage(b64) {
       if (el.t === 'portrait') {
         svg += `<rect x="${ex}" y="${ry}" width="${el.w}" height="${RH}" rx="4" fill="${theme.portrait[el.slot === 0 ? 0 : 1]}"/>`;
         svg += `<g transform="translate(${ex+RP+NW+IG},${ry+RP})" clip-path="url(#c)"><image x="${SO}" y="${SO}" width="${SW}" height="${SH}" href="${esc(el.img)}" preserveAspectRatio="xMidYMid slice"/></g>`;
-        svg += `<foreignObject x="${ex+RP}" y="${ry+RP}" width="${NW}" height="${PH}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${NW}px;height:${PH}px;display:flex;justify-content:center;"><div style="writing-mode:vertical-rl;font-size:20px;font-weight:700;color:${theme.titleColor};line-height:0.85;font-family:sans-serif;">${esc(el.name)}</div></div></foreignObject>`;
+        svg += vertText(ex + RP + 19, ry + RP + 2, el.name, theme.titleColor);
       } else {
         svg += `<rect x="${ex}" y="${ry}" width="${el.w}" height="${RH}" rx="4" fill="${el.color}"/>`;
-        svg += `<foreignObject x="${ex+RP}" y="${ry+RP}" width="${NW}" height="${PH}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${NW}px;height:${PH}px;display:flex;justify-content:center;"><div style="writing-mode:vertical-rl;font-size:20px;font-weight:700;color:${theme.titleColor};line-height:0.85;font-family:sans-serif;">${el.key.charAt(0).toUpperCase()+el.key.slice(1)}</div></div></foreignObject>`;
+        svg += vertText(ex + RP + 19, ry + RP + 2, el.key, theme.titleColor);
         let ix = ex + RP + NW + IG;
         for (const p of el.items) {
           svg += `<g data-id="${p.id}" data-slot="${el.slot}" data-group="${el.key}" transform="translate(${ix},${ry+RP})" clip-path="url(#c)"><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice"/></g>`;
@@ -267,6 +271,7 @@ function downloadRecordSVG() {
 
 async function svgToPngBlob(svgEl) {
   const clone = svgEl.cloneNode(true);
+
   const imgs = clone.querySelectorAll('image');
   let hadFailure = false;
   await Promise.all(Array.from(imgs).map(async el => {
@@ -281,11 +286,11 @@ async function svgToPngBlob(svgEl) {
     } catch (e) { console.warn('PNG embed failed:', href, e); hadFailure = true; el.remove(); }
   }));
   if (hadFailure) showToast('Some images failed to load');
+
   const svgData = new XMLSerializer().serializeToString(clone);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const img = new Image();
-  img.crossOrigin = 'anonymous';
   const blob = new Blob([svgData], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   return new Promise((resolve, reject) => {
