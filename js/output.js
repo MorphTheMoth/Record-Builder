@@ -34,10 +34,7 @@ function generate() {
     if (!seen.has(id)) {
       seen.add(id);
       const lvl = potLevels[id]||0;
-      if (lvl > 0) {
-        const totalLevel = potLevels[id];
-        if (totalLevel > 0) parts.push(`${id}:${totalLevel}`);
-      }
+      if (lvl > 0) parts.push(`${id}:${lvl}`);
     }
   });
 

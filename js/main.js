@@ -199,7 +199,7 @@ function preloadAllDiscImages() {
   for (const id of ids) {
     const imgId = String(id).slice(2);
     const img = new Image();
-    img.src = BASE_ASSETS + `export/assets/assetbundles/icon/outfit/outfit_${imgId}.webp`;
+    img.src = BASE_ASSETS + `export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp`;
   }
   discImagesPreloaded = true;
 }
@@ -299,13 +299,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function init() {
   try {
-    [charData, discData, charJson, potentialDesc] = await Promise.all([
-      fetchJSON(BASE_RAW + 'characterid.json'),
-      fetchJSON(BASE_RAW + 'disc.json'),
-      fetchJSON(BASE_RAW + 'character.json'),
-      fetchJSON(BASE_RAW + 'EN/language/en_US/Potential.json')
-        .catch(e => { console.warn('Could not load potential descriptions', e); return {}; }),
+    [charData, discData, charJson] = await Promise.all([
+      fetchJSON('data/characterid.json'),
+      fetchJSON('data/disc.json'),
+      fetchJSON('data/character.json'),
     ]);
+    potDescMap = buildPotDescMap();
 
     const urlParams = new URLSearchParams(window.location.search.replace(/\+/g, '%2B'));
     const png = urlParams.get('record-png');
@@ -397,8 +396,8 @@ async function init() {
   try {
     if (typeof VANILLA_MODE === 'undefined' || !VANILLA_MODE) {
       [emblemAttrData, itemData] = await Promise.all([
-        fetchJSON(BASE_RAW + 'EN/bin/CharGemAttrValue.json'),
-        fetchJSON(BASE_RAW + 'EN/language/en_US/Item.json'),
+        fetchJSON('data/CharGemAttrValue.json'),
+        fetchJSON('data/Item.json'),
       ]);
     }
   } catch(e) { console.warn('Could not load emblem attr data', e); }
