@@ -90,7 +90,7 @@ function renderDiscs() {
     thumb.className = 'disc-thumb' + (selectedDiscs[i] ? ' selected' : '');
     if (selectedDiscs[i]) {
       const imgId = String(selectedDiscs[i]).slice(2);
-      thumb.innerHTML = `<img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}.webp" onerror="this.style.opacity=0.2">`;
+      thumb.innerHTML = `<img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">`;
     } else {
       thumb.innerHTML = `<span class="plus">+</span>`;
     }
@@ -226,7 +226,7 @@ function fillDiscList(list, slotIdx, filter) {
       const opt = document.createElement('div');
       opt.className = 'disc-option' + (selectedDiscs[slotIdx] === id ? ' selected-opt' : '');
       opt.innerHTML = `
-        <img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}.webp" onerror="this.style.opacity=0.2">
+        <img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">
         <div class="info">
           <div class="dname">${d.name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
           <div class="dmeta">${'★'.repeat(d.star)} · ${d.element}</div>

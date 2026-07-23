@@ -254,21 +254,6 @@ function renderRecordImage(b64) {
   document.body.classList.add('modal-open');
 }
 
-function downloadRecordSVG() {
-  const svgEl = document.querySelector('#recordImageContent svg');
-  if (!svgEl) return;
-  const svgData = new XMLSerializer().serializeToString(svgEl);
-  const blob = new Blob([svgData], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'record-preview.svg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 async function svgToPngBlob(svgEl) {
   const clone = svgEl.cloneNode(true);
 

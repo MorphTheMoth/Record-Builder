@@ -1,4 +1,3 @@
-const BASE_RAW = 'https://raw.githubusercontent.com/AutumnVN/StellaSoraData/main/';
 const BASE_ASSETS = 'https://raw.githubusercontent.com/AutumnVN/ssassets/main/';
 
 let charData = {}, discData = {}, charJson = {};
@@ -8,7 +7,7 @@ let potLevels = {};
 let noteCounts = {};
 let discCopies = {};
 let playerId = '10001';
-let potentialDesc = {};
+let potDescMap = {};
 let emblemStats = {};
 let emblemStatGroups = {};
 let emblemAttrData = {};
@@ -128,36 +127,59 @@ function formatDescriptionWithColor(desc) {
   return result;
 }
 
-function formatPotentialDesc(id, params) {
-  const key = `Potential.${id}.2`;
-  let template = potentialDesc[key];
-  if (!template) return `[No description available for ${id}]`;
-
-  if (!Array.isArray(params)) params = [];
-  params = params.map(p => (p !== undefined && p !== null) ? String(p) : '');
-
-  const currentLevel = potLevels[id] || 0;
-
-  function getTierValue(str, level) {
-    if (!str || typeof str !== 'string') return str;
-    const parts = str.split('/');
-    if (parts.length === 1) return str;
-    if (parts.length === 13) return parts[9] || str;
-    let idx;
-    if (level === 0) idx = 5;
-    else idx = Math.min(parts.length - 1, Math.max(0, level - 1));
-    return parts[idx] || str;
+function buildPotDescMap() {
+  const map = {};
+  const potKeys = ['mainCore','mainNormal','supportCore','supportNormal','common'];
+  for (const key of Object.keys(charJson)) {
+    const c = charJson[key];
+    if (!c?.potential) continue;
+    for (const pk of potKeys) {
+      const arr = c.potential[pk];
+      if (!Array.isArray(arr)) continue;
+      for (const p of arr) {
+        if (p.id && p.desc) {
+          map[p.id] = p.desc;
+        }
+      }
+    }
   }
+  return map;
+}
 
+function getTierValue(str, level) {
+  if (!str || typeof str !== 'string') return str;
+  const parts = str.split('/');
+  if (parts.length === 1) return str;
+  if (parts.length === 13) return parts[9] || str;
+  let idx;
+  if (level === 0) idx = 5;
+  else idx = Math.min(parts.length - 1, Math.max(0, level - 1));
+  return parts[idx] || str;
+}
+
+function replaceParams(template, values, level, prefix) {
+  if (!Array.isArray(values)) values = [];
+  values = values.map(p => (p !== undefined && p !== null) ? String(p) : '');
   let result = template;
   for (let i = 1; i <= 15; i++) {
-    const placeholder = `&Param${i}&`;
+    const placeholder = `&${prefix}${i}&`;
     if (result.includes(placeholder)) {
-      let rawValue = (i-1 < params.length) ? String(params[i-1]) : '?';
-      if (rawValue.includes('/')) rawValue = getTierValue(rawValue, currentLevel);
+      let rawValue = (i-1 < values.length) ? String(values[i-1]) : '?';
+      if (rawValue.includes('/')) rawValue = getTierValue(rawValue, level);
       result = result.replace(new RegExp(placeholder, 'g'), rawValue);
     }
   }
+  return result;
+}
+
+function formatPotentialDesc(id, params) {
+  const desc = potDescMap[id];
+  if (!desc) return `[No description available for ${id}]`;
+
+  if (!Array.isArray(params)) params = [];
+  const currentLevel = potLevels[id] || 0;
+
+  const result = replaceParams(desc, params, currentLevel, 'Param');
 
   return formatDescriptionWithColor(result);
 }
