@@ -56,6 +56,7 @@ function nextTheme() {
 function hideRecordImage() {
   document.getElementById('recordImageOverlay').style.display = 'none';
   document.body.classList.remove('modal-open');
+  if (typeof resetCanvasNotesMode === 'function') resetCanvasNotesMode();
 }
 
 function renderRecordImage(b64, options = {}) {
@@ -218,6 +219,7 @@ function renderRecordImage(b64, options = {}) {
     svg += `<text x="${sp + 20}" y="${titleH - 18}" font-size="36" font-weight="900" fill="${theme.titleColor}" font-family="DejaVu Sans, sans-serif">${esc(currentTitle)}</text>`;
   }
 
+  const potPositions = [];
   for (const row of rows) {
     const ry = titleH + row.y + sp;
     for (const el of row.elements) {
@@ -234,6 +236,7 @@ function renderRecordImage(b64, options = {}) {
           svg += `<g data-id="${p.id}" data-slot="${el.slot}" data-group="${el.key}" transform="translate(${ix},${ry+RP})" clip-path="url(#c)"><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice"/></g>`;
           if (!['01','02','03','04','21','22','23','24'].includes(String(p.id).slice(-2)))
             svg += `<text x="${ix+15}" y="${ry+RP+16}" font-size="16" font-family="Consolas,monospace" font-weight="bold" fill="#568">${p.level}</text>`;
+          potPositions.push({ id: String(p.id), slot: el.slot, group: el.key, x: ix, y: ry + RP });
           ix += PW + IG;
         }
       }
@@ -246,7 +249,13 @@ function renderRecordImage(b64, options = {}) {
 
   svg += `</svg>`;
 
-  if (returnSVG) return svg;
+  if (returnSVG) {
+    if (typeof buildNotesSvgString === 'function') {
+      const notes = buildNotesSvgString(svgW, svgH, potPositions);
+      if (notes) svg = svg.replace(/<\/svg>\s*$/, notes + '</svg>');
+    }
+    return svg;
+  }
 
   document.getElementById('recordImageContent').innerHTML = svg;
   populateThemeSelect();
@@ -254,6 +263,12 @@ function renderRecordImage(b64, options = {}) {
   attachPotentialTooltips(document.querySelector('#recordImageContent svg'));
 
   enableSvgReorder();
+
+  const finalSvg = document.querySelector('#recordImageContent svg');
+  if (finalSvg) {
+    renderCanvasNotes(finalSvg);
+    attachCanvasNoteEvents(finalSvg);
+  }
 
   document.getElementById('recordImageOverlay').style.display = 'block';
   document.body.classList.add('modal-open');
@@ -386,6 +401,9 @@ function buildRecordUrl() {
   });
   const orderStr = orderParts.join('_');
   if (orderStr.replace(/_/g, '')) url += '&order=' + encodeURIComponent(orderStr);
+
+  const notesStr = typeof encodeCanvasNotesToParam === 'function' ? encodeCanvasNotesToParam() : '';
+  if (notesStr) url += '&notes=' + encodeURIComponent(notesStr);
 
   return url;
 }
@@ -778,15 +796,20 @@ function checkRecordImageParam() {
   const bonusData = params.get('bonus-data');
   const titleParam = params.get('title');
   const themeParam = params.get('theme');
+  const notesParam = params.get('notes');
   if (preview || image) {
     currentTitle = '';
     currentThemeName = 'dark';
+    if (typeof clearCanvasNotes === 'function') clearCanvasNotes();
     if (titleParam) {
       currentTitle = titleParam;
       localStorage.setItem('nrb-title', currentTitle);
     }
     if (themeParam && themes[themeParam]) {
       currentThemeName = themeParam;
+    }
+    if (notesParam && typeof decodeCanvasNotesFromParam === 'function') {
+      decodeCanvasNotesFromParam(notesParam);
     }
   }
   if (preview) {
