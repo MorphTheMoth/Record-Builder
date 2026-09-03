@@ -30,6 +30,8 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 
 .section { margin-bottom: 20px; border-top: 1px solid #2a2a2a; padding-top: 14px; }
 .section.folded > :not(h2) { display: none !important; }
+.section.folded #charElementFilters { display: none !important; }
+#charactersSection h2 { min-height: 34px; }
 .sec-title { cursor: pointer; user-select: none; }
 .sec-title:hover { color: #999; }
 .sec-title::before {
@@ -80,6 +82,18 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
   font-size: 9px; background: rgba(0,0,0,0.8); color: #ddd;
   padding: 2px 6px; border-radius: 3px; z-index: 2; font-weight: bold;
 }
+/* Character element filters */
+.char-filter-btn {
+  width: 34px; height: 34px; padding: 1px;
+  background: #222; border: 1px solid #333; border-radius: 3px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0.35; transition: opacity 0.1s, border-color 0.1s, background 0.1s;
+}
+.char-filter-btn img { width: 100%; height: 100%; object-fit: contain; display: block; transform: scale(1.15); position: relative; top: 1px; }
+.char-filter-btn:hover { opacity: 0.8; border-color: #555; }
+.char-filter-btn.active { opacity: 1; border-color: #888; background: #2a2a2a; }
+.char-filter-btn.star-btn { font-size: 13px; font-weight: bold; color: #ccc; font-family: inherit; letter-spacing: 0.5px; }
+.char-filter-sep { width: 1px; align-self: stretch; background: #333; margin: 2px 2px; }
 
 /* Discs */
 .disc-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
@@ -93,6 +107,8 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 }
 .disc-thumb:hover { border-color: #555; }
 .disc-thumb.selected { border-color: #888; }
+.disc-thumb.dragging { opacity: 0.4; }
+.disc-slot.drag-over .disc-thumb { border-color: #999; background: #333; }
 .disc-thumb img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.08); }
 .disc-thumb .plus { color: #444; font-size: 24px; }
 
@@ -147,8 +163,11 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 .disc-option:hover { background: #2a2a2a; border-left-color: #666; }
 
 /* Potentials */
-.pot-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.pot-actions-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pot-tabs { display: flex; gap: 12px 30px; margin-bottom: 24px; justify-content: flex-start; align-items: flex-start; flex-wrap: wrap; padding-left: 22px; overflow: visible; }
+.pot-slot-col { display: flex; flex-direction: column; gap: 4px; flex: 0 0 104px; width: 104px; min-width: 0; align-items: stretch; overflow: visible; }
+.pot-slot-title { font-size: 9px; line-height: 12px; text-transform: uppercase; letter-spacing: 2px; color: #666; text-align: center; padding: 2px 0; width: 100%; min-height: 16px; box-sizing: border-box; }
+.pot-slot-col.drag-over .pot-slot-title { color: #aaa; }
+.pot-actions-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 24px; }
 .pot-actions-buttons { display: flex; gap: 6px; flex-shrink: 0; }
 .preset-btns-mobile { display: none; }
 .preset-btns-desktop { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -159,12 +178,33 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
   #pngToolbar .png-copy { order: 1; }
 }
 .pot-tab {
-  padding: 4px 14px; font-size: 12px; font-family: inherit;
+  position: relative; overflow: visible;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; min-height: 38px; box-sizing: border-box;
+  padding: 4px 6px 4px 24px; font-size: 12px; font-family: inherit;
   background: #222; border: 1px solid #333; color: #666;
-  border-radius: 2px; cursor: pointer; transition: background 0.1s, color 0.1s;
+  border-radius: 2px; cursor: pointer; transition: background 0.1s, color 0.1s, border-color 0.1s, opacity 0.1s;
+  min-width: 0; user-select: none; touch-action: pan-y;
 }
 .pot-tab:hover { background: #2a2a2a; color: #999; }
 .pot-tab.active { background: #2a2a2a; border-color: #666; color: #ccc; }
+.pot-tab .pot-tab-head { position: absolute; left: -22px; top: 50%; margin-top: -22px; width: 44px; height: 44px; overflow: hidden; border-radius: 2px; border: 1px solid #333; background: #2a2a2a; display: block; z-index: 2; box-sizing: border-box; cursor: inherit; }
+.pot-tab .pot-tab-head img { width: calc(100% + 2px); height: calc(100% + 2px); margin: -1px; object-fit: cover; display: block; }
+.pot-tab .pot-tab-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.pot-tab:hover .pot-tab-head { border-color: #555; }
+.pot-tab.active .pot-tab-head { border-color: #666; }
+.pot-tab[draggable="true"] { cursor: grab; }
+.pot-tab.dragging { opacity: 0.4; }
+.pot-tab.drag-over { border-color: #999; background: #333; }
+.pot-slot-empty {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 8px; font-size: 11px; color: #444;
+  background: #1a1a1a; border: 1px dashed #2e2e2e; border-radius: 2px;
+  min-height: 38px; box-sizing: border-box; user-select: none;
+}
+.pot-slot-col.drag-over .pot-slot-empty { border-color: #999; color: #ccc; background: #2a2a2a; }
+.pot-extras-stack { display: grid; grid-template-columns: repeat(2, 104px); gap: 10px 30px; }
+.pot-slot-col.pot-extras-col { flex: 0 0 auto; width: auto; }
 .pot-page {
   display: none;
   flex-direction: column;
@@ -719,7 +759,13 @@ body.vanilla-mode .emblem-section { display: none !important; }
   .record-preview-content svg { width: 100% !important; height: auto !important; }
   .record-preview-header { flex-direction: column; gap: 12px; align-items: flex-start; padding: 12px 12px 0; }
   .pot-actions-row { flex-direction: column; align-items: stretch; }
-  #potTabs { order: 1; }
+  #potTabs { order: 1; gap: 10px 30px; padding-left: 22px; }
+  .pot-slot-col { flex: 0 0 92px; width: 92px; }
+  .pot-slot-col.pot-extras-col { flex: 0 0 auto; width: auto; }
+  .pot-extras-stack { grid-template-columns: repeat(2, 92px); gap: 10px 30px; }
+  .pot-tab { min-height: 36px; padding-left: 24px; }
+  .pot-tab .pot-tab-head { width: 44px; height: 44px; left: -22px; }
+  .pot-slot-empty { min-height: 52px; }
   .pot-actions-buttons { flex-wrap: wrap; justify-content: flex-end; }
   .preset-btns-mobile { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .preset-btns-desktop { display: none; }
@@ -758,7 +804,21 @@ body.vanilla-mode .emblem-section { display: none !important; }
 
   <div class="section" id="charactersSection">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <span>Characters</span>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span>Characters</span>
+        <div id="charElementFilters" style="display:flex;gap:6px;align-items:center;">
+          <button class="char-filter-btn active" data-element="__all" title="Show all" onclick="clearCharElementFilters()"><img src="data/disc badges/None.avif" alt="All"></button>
+          <button class="char-filter-btn" data-element="Aqua" title="Show only Aqua" onclick="setCharElementFilter('Aqua')"><img src="data/disc badges/Aqua.avif" alt="Aqua"></button>
+          <button class="char-filter-btn" data-element="Ignis" title="Show only Ignis" onclick="setCharElementFilter('Ignis')"><img src="data/disc badges/Ignis.avif" alt="Ignis"></button>
+          <button class="char-filter-btn" data-element="Ventus" title="Show only Ventus" onclick="setCharElementFilter('Ventus')"><img src="data/disc badges/Ventus.avif" alt="Ventus"></button>
+          <button class="char-filter-btn" data-element="Terra" title="Show only Terra" onclick="setCharElementFilter('Terra')"><img src="data/disc badges/Terra.avif" alt="Terra"></button>
+          <button class="char-filter-btn" data-element="Lux" title="Show only Lux" onclick="setCharElementFilter('Lux')"><img src="data/disc badges/Lux.avif" alt="Lux"></button>
+          <button class="char-filter-btn" data-element="Umbra" title="Show only Umbra" onclick="setCharElementFilter('Umbra')"><img src="data/disc badges/Umbra.avif" alt="Umbra"></button>
+          <div class="char-filter-sep"></div>
+          <button class="char-filter-btn star-btn" data-star="4" title="Filter 4-star" onclick="setCharRarityFilter(4)">4★</button>
+          <button class="char-filter-btn star-btn" data-star="5" title="Filter 5-star" onclick="setCharRarityFilter(5)">5★</button>
+        </div>
+      </div>
       <div style="display:flex;gap:6px;align-items:center;">
         <button class="import-btn vanilla-hide" id="editCharsBtn" onclick="openEditCharsPopup()" title="Edit character skill/talent/affinity">Edit Characters</button>
         <button class="import-btn clear-btn" onclick="clearCharacters()" title="Unselect all characters">Clear</button>
@@ -797,7 +857,7 @@ body.vanilla-mode .emblem-section { display: none !important; }
       </div>
     </h2>
     <div class="pot-actions-row">
-      <div class="pot-tabs" id="potTabs" style="margin-bottom:0; flex: 1; flex-wrap: wrap; gap: 6px;"></div>
+      <div class="pot-tabs" id="potTabs" style="margin-bottom:0; flex: 1;"></div>
       <div class="pot-actions-buttons">
         <button class="import-btn" id="priorityToggle" onclick="togglePriorityMode()">Edit Priorities</button>
         <button class="import-btn clear-btn" onclick="clearPotentials()" title="Reset all potentials and emblems">Clear</button>

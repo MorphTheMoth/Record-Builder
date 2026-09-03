@@ -1,3 +1,61 @@
+let charElementFilters = new Set();
+let charRarityFilters = new Set();
+// legacy alias (single-filter) kept for compat
+let charElementFilter = null;
+
+function getCharStar(id) {
+  const s = (typeof charJson !== 'undefined' && charJson[id] != null) ? charJson[id].star : undefined;
+  return (s === 4 || s === '4') ? 4 : (s === 5 || s === '5') ? 5 : null;
+}
+
+function setCharElementFilter(el) {
+  if (el === '__all' || el === 'None') { clearCharElementFilters(); return; }
+  if (charElementFilters.has(el)) charElementFilters.delete(el);
+  else charElementFilters.add(el);
+  charElementFilter = charElementFilters.size === 1 ? [...charElementFilters][0] : null;
+  updateCharFilterButtons();
+  applyCharElementFilter();
+}
+
+function clearCharElementFilters() {
+  charElementFilters.clear();
+  charElementFilter = null;
+  updateCharFilterButtons();
+  applyCharElementFilter();
+}
+
+function setCharRarityFilter(star) {
+  star = Number(star);
+  if (charRarityFilters.has(star) && charRarityFilters.size === 1) charRarityFilters.clear();
+  else { charRarityFilters.clear(); charRarityFilters.add(star); }
+  updateCharFilterButtons();
+  applyCharElementFilter();
+}
+
+function updateCharFilterButtons() {
+  document.querySelectorAll('#charElementFilters .char-filter-btn').forEach(btn => {
+    if (btn.dataset.star) {
+      btn.classList.toggle('active', charRarityFilters.has(Number(btn.dataset.star)));
+      return;
+    }
+    const el = btn.dataset.element;
+    if (el === '__all') btn.classList.toggle('active', charElementFilters.size === 0);
+    else btn.classList.toggle('active', charElementFilters.has(el));
+  });
+}
+
+function applyCharElementFilter() {
+  document.querySelectorAll('.char-card').forEach(card => {
+    const elOk = charElementFilters.size === 0 || charElementFilters.has(card.dataset.element);
+    let starOk = true;
+    if (charRarityFilters.size !== 0) {
+      const cardStar = card.dataset.star ? Number(card.dataset.star) : getCharStar(card.dataset.charId);
+      starOk = cardStar != null && charRarityFilters.has(Number(cardStar));
+    }
+    card.style.display = (elOk && starOk) ? '' : 'none';
+  });
+}
+
 async function renderChars() {
   const grid = document.getElementById('charGrid');
   grid.innerHTML = '';
@@ -15,7 +73,8 @@ async function renderChars() {
     if (!probes[i]) continue;
     const id = ids[i];
     const element = charJson[id]?.element || 'Other';
-    validChars.push({ id, element, name: charData[id] });
+    const star = charJson[id]?.star ?? null;
+    validChars.push({ id, element, star, name: charData[id] });
   }
 
   const elementOrder = { Aqua:0, Ignis:1, Ventus:2, Terra:3, Lux:4, Umbra:5, Other:6 };
@@ -31,6 +90,7 @@ async function renderChars() {
     div.className = 'char-card';
     div.dataset.charId = ch.id;
     div.dataset.element = ch.element;
+    if (ch.star != null) div.dataset.star = String(ch.star);
 
     div.appendChild(headCropEl(BASE_ASSETS + `export/assets/assetbundles/icon/head/head_${ch.id}02_XXL.webp`));
 
@@ -43,6 +103,7 @@ async function renderChars() {
   }
 
   refreshCharBadges();
+  applyCharElementFilter();
 }
 
 function refreshCharBadges() {
@@ -81,6 +142,16 @@ function toggleChar(id) {
 function renderDiscs() {
   const row = document.getElementById('discRow');
   row.innerHTML = '';
+  // Warm the outfit image cache so the drag ghost includes them on the first drag
+  selectedDiscs.forEach((dId) => {
+    if (!dId) return;
+    try {
+      const warm = new Image();
+      warm.decoding = 'sync';
+      warm.src = BASE_ASSETS + `export/assets/assetbundles/icon/outfit/outfit_${String(dId).slice(2)}_a.webp`;
+      if (warm.decode) warm.decode().catch(() => {});
+    } catch (err) {}
+  });
   const labels = ['Main','Main','Main','Support','Support','Support'];
   for (let i = 0; i < 6; i++) {
     if (i === 3) { const sep = document.createElement('div'); sep.className = 'sep'; row.appendChild(sep); }
@@ -93,11 +164,55 @@ function renderDiscs() {
     thumb.className = 'disc-thumb' + (selectedDiscs[i] ? ' selected' : '');
     if (selectedDiscs[i]) {
       const imgId = String(selectedDiscs[i]).slice(2);
-      thumb.innerHTML = `<img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">`;
+      thumb.innerHTML = `<img decoding="sync" draggable="false" src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">`;
     } else {
       thumb.innerHTML = `<span class="plus">+</span>`;
     }
     thumb.onclick = (e) => { e.stopPropagation(); toggleDiscDropdown(i); };
+    slot.dataset.discSlot = String(i);
+    if (selectedDiscs[i]) {
+      thumb.draggable = true;
+      thumb.title = 'Drag to swap position';
+      thumb.addEventListener('dragstart', (ev) => {
+        closeAllDiscDD();
+        ev.dataTransfer.setData('text/x-disc-slot', String(i));
+        ev.dataTransfer.effectAllowed = 'move';
+        try { ev.dataTransfer.setData('text/plain', String(i)); } catch (err) {}
+        thumb.classList.add('dragging');
+      });
+      thumb.addEventListener('dragend', () => {
+        thumb.classList.remove('dragging');
+        document.querySelectorAll('#discRow .drag-over').forEach(el => el.classList.remove('drag-over'));
+      });
+      thumb.addEventListener('touchstart', () => { thumb.dataset.touchSrc = String(i); thumb.classList.add('dragging'); }, { passive: true });
+      thumb.addEventListener('touchend', (ev) => {
+        thumb.classList.remove('dragging');
+        const fromIdx = Number(thumb.dataset.touchSrc);
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t || Number.isNaN(fromIdx)) return;
+        const target = document.elementFromPoint(t.clientX, t.clientY);
+        const slotTarget = target && target.closest ? target.closest('#discRow .disc-slot') : null;
+        if (!slotTarget) return;
+        const toIdx = Number(slotTarget.dataset.discSlot);
+        if (!Number.isNaN(toIdx) && toIdx !== fromIdx) { ev.preventDefault(); swapDiscSlots(fromIdx, toIdx); }
+      });
+    }
+    slot.addEventListener('dragover', (ev) => {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      slot.classList.add('drag-over');
+    });
+    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+    slot.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      slot.classList.remove('drag-over');
+      let fromRaw = null;
+      try { fromRaw = ev.dataTransfer.getData('text/x-disc-slot'); } catch (err) {}
+      if (fromRaw === null || fromRaw === '' || fromRaw === undefined) { try { fromRaw = ev.dataTransfer.getData('text/plain'); } catch (err) {} }
+      const fromIdx = Number(fromRaw);
+      if (Number.isNaN(fromIdx) || fromIdx === i) return;
+      swapDiscSlots(fromIdx, i);
+    });
 
     const dd = document.createElement('div');
     dd.className = 'disc-dropdown';
@@ -297,6 +412,24 @@ function closeAllDiscDD() {
 
 function selectDisc(slotIdx, id) {
   selectedDiscs[slotIdx] = id;
+  closeAllDiscDD();
+  renderDiscs();
+  renderDiscOutput();
+  updateNotes();
+  generate();
+}
+
+function swapDiscSlots(fromIdx, toIdx) {
+  fromIdx = Number(fromIdx);
+  toIdx = Number(toIdx);
+  if (Number.isNaN(fromIdx) || Number.isNaN(toIdx)) return;
+  if (fromIdx === toIdx) return;
+  if (fromIdx < 0 || fromIdx >= selectedDiscs.length) return;
+  if (toIdx < 0 || toIdx >= selectedDiscs.length) return;
+  if (!selectedDiscs[fromIdx]) return;
+  const tmp = selectedDiscs[fromIdx];
+  selectedDiscs[fromIdx] = selectedDiscs[toIdx];
+  selectedDiscs[toIdx] = tmp;
   closeAllDiscDD();
   renderDiscs();
   renderDiscOutput();
