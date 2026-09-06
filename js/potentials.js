@@ -149,7 +149,7 @@ function updatePotentials() {
   };
 
   const createPotTab = (cId, idx) => {
-    const name = charJson[cId]?.name || cId;
+    const name = (typeof charData !== 'undefined' && charData[cId]) ? charData[cId] : (charJson[cId]?.name || cId);
     const btn = document.createElement('button');
     btn.className = 'pot-tab' + (idx === activePotTab ? ' active' : '');
     btn.draggable = true;
