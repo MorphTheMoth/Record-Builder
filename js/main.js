@@ -426,6 +426,7 @@ async function init() {
     }
 
     if (png) {
+      previewMode = true;
       const orderParam = urlParams.get('o') ?? urlParams.get('order');
       const bonusData = urlParams.get('b') ?? urlParams.get('bonus-data');
       let editUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?r=' + encodeURIComponent(png) + (prioStr ? '&p=' + encodeURIComponent(prioStr) : '') + (bonusData ? '&b=' + encodeURIComponent(bonusData) : '');
