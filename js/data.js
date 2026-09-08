@@ -49,6 +49,7 @@ let activePotTab = 0;
 let canvasNotes = [];
 let editNotesMode = false;
 let charHeadVariants = {};
+let previewMode = false;
 const customHeadImages = {};
 
 const NOTE_IDS = [90011,90012,90013,90014,90015,90016,90017,90018,90019,90020,90021,90022,90023];
@@ -101,6 +102,7 @@ function fetchJSON(url) {
 }
 
 function saveState() {
+  if (previewMode) return; // preview pages (?png/?record-png/?record-image) must never overwrite saved state
   const state = {
     playerId, selectedChars, selectedDiscs,
     potLevels: {...potLevels}, emblemStats: {...emblemStats},

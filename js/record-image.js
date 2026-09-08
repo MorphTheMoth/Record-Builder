@@ -1192,6 +1192,7 @@ function checkRecordImageParam() {
     updatePotentials();
   }
   if (image) {
+    previewMode = true;
     document.getElementById('importInput').value = image;
     importPotentials();
     applyBonusUnitsData(bonusData);
