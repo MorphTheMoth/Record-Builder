@@ -224,7 +224,7 @@ function copyEditCharsOutput() {
   if (!out) return;
   const txt = out.textContent;
   if (!txt || txt.trim() === '—' || txt.trim() === '' || txt.includes('no characters')) return;
-  copyToClipboard(txt.replace(/\r?\n+$/, ''));
+  copyToClipboard(txt.replace(/\r?\n|\r|\n/g, '\n').replace(/\n+/g, '\n').replace(/^\n+|\n+$/g, '').split('\n').join('\r\n') + '\r\n');
 }
 
 // Allow Escape to close
