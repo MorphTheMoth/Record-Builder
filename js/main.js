@@ -11,6 +11,7 @@ function buildCurrentState() {
     emblemStats: {...emblemStats},
     emblemStatGroups: {...emblemStatGroups},
     potLevels: {...potLevels},
+    potTags: JSON.parse(JSON.stringify(potTags)),
     priorityMap: {...priorityMap},
     potOrder: JSON.parse(JSON.stringify(potOrder)),
     canvasNotes: (canvasNotes || []).map(n => ({...n})),
@@ -221,6 +222,7 @@ function showLoadBuildPopup() {
       if (extras.emblemStats) emblemStats = extras.emblemStats;
       if (extras.emblemStatGroups) emblemStatGroups = extras.emblemStatGroups;
       if (extras.potLevels) potLevels = extras.potLevels;
+      if (extras.potTags) potTags = extras.potTags; else potTags = {};
       if (extras.priorityMap) priorityMap = extras.priorityMap;
       if (extras.potOrder) potOrder = extras.potOrder;
       if (extras.canvasNotes) canvasNotes = extras.canvasNotes;
@@ -305,6 +307,7 @@ function clearDiscs() {
 
 function clearPotentials() {
   potLevels = {};
+  potTags = {};
   potOrder = {};
   currentBuildId = null;
   localStorage.removeItem(CURRENT_BUILD_KEY);
@@ -409,6 +412,7 @@ async function init() {
     const urlParams = new URLSearchParams(window.location.search.replace(/\+/g, '%2B'));
     const png = urlParams.get('png') ?? urlParams.get('record-png');
     const prioStr = urlParams.get('p') ?? urlParams.get('priorities');
+    const tagsParam = urlParams.get('l') ?? urlParams.get('levels');
     if (prioStr) {
       const slotStrs = prioStr.split('_');
       const keys = ['core', 'high', 'medium', 'low', 'optional'];
@@ -430,6 +434,7 @@ async function init() {
       const orderParam = urlParams.get('o') ?? urlParams.get('order');
       const bonusData = urlParams.get('b') ?? urlParams.get('bonus-data');
       let editUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?r=' + encodeURIComponent(png) + (prioStr ? '&p=' + encodeURIComponent(prioStr) : '') + (bonusData ? '&b=' + encodeURIComponent(bonusData) : '');
+      if (tagsParam) editUrl += '&l=' + encodeURIComponent(tagsParam);
       const themeParam = urlParams.get('h') ?? urlParams.get('theme');
       if (themeParam) editUrl += '&h=' + encodeURIComponent(themeParam);
       if (orderParam) editUrl += '&o=' + encodeURIComponent(orderParam);
@@ -453,6 +458,7 @@ async function init() {
       applyPendingPrios();
       if (orderParam) resolveOrderFromParam(orderParam);
       if (variantParam) parseHeadVariantsParam(variantParam);
+      if (tagsParam) parsePotTagsParam(tagsParam);
       if (notesParam && typeof decodeCanvasNotesFromParam === 'function') {
         decodeCanvasNotesFromParam(notesParam);
       }
@@ -550,6 +556,7 @@ async function init() {
       if (extras.emblemStats) emblemStats = extras.emblemStats;
       if (extras.emblemStatGroups) emblemStatGroups = extras.emblemStatGroups;
       if (extras.potLevels) potLevels = extras.potLevels;
+      if (extras.potTags) potTags = extras.potTags; else potTags = {};
       if (extras.priorityMap) priorityMap = extras.priorityMap;
       if (extras.potOrder) potOrder = extras.potOrder;
       if (extras.canvasNotes) canvasNotes = extras.canvasNotes;

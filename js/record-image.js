@@ -350,8 +350,10 @@ function renderRecordImage(b64, options = {}) {
         let ix = ex + RP + NW + IG;
         for (const p of el.items) {
           svg += `<g data-id="${p.id}" data-slot="${el.slot}" data-group="${el.key}" transform="translate(${ix},${ry+RP})"><rect width="${PW}" height="${PH}" fill="transparent"/><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice" clip-path="url(#c)" style="pointer-events:none;user-select:none"/></g>`;
-          if (!['01','02','03','04','21','22','23','24'].includes(String(p.id).slice(-2)))
-            svg += `<text x="${ix + 22}" y="${ry + RP + 12}" text-anchor="middle" dominant-baseline="middle" font-size="${currentLvlFont}" font-family="'DejaVu Sans Mono', monospace" font-weight="bold" fill="#568">${p.level}</text>`;
+          if (!['01','02','03','04','21','22','23','24'].includes(String(p.id).slice(-2))) {
+            const tg = potTagParts(p.id);
+            svg += `<text x="${ix + 22}" y="${ry + RP + 12}" text-anchor="middle" dominant-baseline="middle" font-size="${currentLvlFont}" font-family="'DejaVu Sans Mono', monospace" font-weight="bold" fill="#568">${esc(tg.pre)}${p.level}${esc(tg.post)}</text>`;
+          }
           potPositions.push({ id: String(p.id), slot: el.slot, group: el.key, x: ix, y: ry + RP });
           ix += PW + IG;
         }
@@ -557,6 +559,9 @@ function buildRecordUrl() {
   });
   const orderStr = orderParts.join('_');
   if (orderStr.replace(/_/g, '')) url += '&o=' + encodeURIComponent(orderStr);
+
+  const tagsStr = typeof encodePotTagsParam === 'function' ? encodePotTagsParam() : '';
+  if (tagsStr) url += '&l=' + encodeURIComponent(tagsStr);
 
   const notesStr = typeof encodeCanvasNotesToParam === 'function' ? encodeCanvasNotesToParam() : '';
   if (notesStr) url += '&n=' + encodeURIComponent(notesStr);
@@ -1163,6 +1168,7 @@ function checkRecordImageParam() {
   const themeParam = params.get('h') ?? params.get('theme');
   const notesParam = params.get('n') ?? params.get('notes');
   const variantParam = params.get('v') ?? params.get('variants');
+  const tagsParam = params.get('l') ?? params.get('levels');
   if (preview || image) {
     currentTitle = '';
     currentThemeName = 'dark';
@@ -1186,6 +1192,7 @@ function checkRecordImageParam() {
     applyPendingPrios();
     if (orderParam) resolveOrderFromParam(orderParam);
     if (variantParam) parseHeadVariantsParam(variantParam);
+    if (tagsParam) parsePotTagsParam(tagsParam);
     renderRecordImage(preview);
     generate();
     refreshCharBadges();
@@ -1199,6 +1206,7 @@ function checkRecordImageParam() {
     applyPendingPrios();
     if (orderParam) resolveOrderFromParam(orderParam);
     if (variantParam) parseHeadVariantsParam(variantParam);
+    if (tagsParam) parsePotTagsParam(tagsParam);
     renderRecordImage(image);
     setTimeout(() => downloadRecordPNG(), 500);
   }

@@ -160,6 +160,15 @@ function updatePotentials() {
     label.className = 'pot-tab-name';
     label.textContent = name;
     btn.appendChild(label);
+    const removeBtn = document.createElement('span');
+    removeBtn.className = 'pot-tab-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'Deselect character';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof toggleChar === 'function') toggleChar(cId);
+    };
+    btn.appendChild(removeBtn);
     btn.onclick = () => { activePotTab = idx; updatePotentials(); };
     btn.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-pot-slot', String(idx));
@@ -182,6 +191,7 @@ function updatePotentials() {
       const t = e.changedTouches && e.changedTouches[0];
       if (!t || Number.isNaN(fromIdx)) return;
       const target = document.elementFromPoint(t.clientX, t.clientY);
+      if (target && target.closest && target.closest('.pot-tab-remove')) return;
       const tabTarget = target && target.closest ? target.closest('.pot-tab') : null;
       const emptyTarget = target && target.closest ? target.closest('.pot-slot-empty') : null;
       const toRaw = tabTarget ? tabTarget.dataset.slot : (emptyTarget ? emptyTarget.dataset.slot : null);
@@ -357,13 +367,22 @@ function updatePotentials() {
         } else {
           const btnMinus = document.createElement('button');
           btnMinus.className = 'pot-btn'; btnMinus.textContent = '−';
-          const inp = document.createElement('span');
-          inp.className = 'pot-val';
-          const bonus = emblemPotBonuses[p.id] || 0;
-          inp.textContent = bonus > 0 ? `${potLevels[p.id]}+${bonus}` : potLevels[p.id];
-          inp.type = 'number'; inp.min = 0; inp.max = maxLvl; inp.value = potLevels[p.id];
+          const inp = document.createElement('input');
+          inp.type = 'text'; inp.className = 'pot-val';
+          inp.spellcheck = false; inp.autocomplete = 'off';
+          inp.title = `Type a level (0-${maxLvl}). Up to two non-digit characters before/after are kept, e.g. "4pq" or "pp4".`;
+          const renderVal = (withBonus) => {
+            const tag = potTags[p.id] || { pre: '', post: '' };
+            const b = emblemPotBonuses[p.id] || 0;
+            inp.value = `${tag.pre}${potLevels[p.id]}${tag.post}${withBonus && b > 0 ? '+' + b : ''}`;
+          };
+          renderVal(true);
+          inp.onfocus = () => { if ((emblemPotBonuses[p.id] || 0) > 0) renderVal(false); };
+          inp.onblur = () => { renderVal(true); };
           inp.oninput = () => {
-            potLevels[p.id] = Math.min(maxLvl, Math.max(0, +inp.value || 0));
+            const { level, pre, post } = parsePotLevelInput(inp.value, maxLvl);
+            potLevels[p.id] = level;
+            if (pre || post) potTags[p.id] = { pre, post }; else delete potTags[p.id];
             item.classList.toggle('active', potLevels[p.id] > 0);
             generate();
           };
@@ -393,9 +412,9 @@ function updatePotentials() {
               tryRemoveEmblemLevel(cId, p.id, potMap, allEmblemGroups);
             }
             potLevels[p.id] = Math.min(maxLvl, Math.max(0, val+diff));
-            const b = emblemPotBonuses[p.id] || 0;
-            inp.textContent = b > 0 ? `${potLevels[p.id]}+${b}` : potLevels[p.id];
-            item.classList.toggle('active', potLevels[p.id] + b > 0);
+            if (potLevels[p.id] === 0) delete potTags[p.id];
+            renderVal(true);
+            item.classList.toggle('active', potLevels[p.id] + (emblemPotBonuses[p.id] || 0) > 0);
             computeEmblemBonuses(cId);
             updatePotentials();
             generate();
@@ -406,6 +425,8 @@ function updatePotentials() {
             if (e.target === btnMinus || e.target === btnPlus || e.target === inp) return;
             update(potLevels[p.id], potLevels[p.id] > 0 ? -potLevels[p.id] : maxLvl);
           };
+          inp.onclick = (e) => e.stopPropagation();
+          inp.onkeydown = (e) => e.stopPropagation();
           controls.appendChild(btnMinus); controls.appendChild(inp); controls.appendChild(btnPlus);
         }
         item.appendChild(img); item.appendChild(nm); item.appendChild(controls);

@@ -30,6 +30,7 @@ let charData = {}, discData = {}, charJson = {};
 let selectedChars = [];
 let selectedDiscs = ["212005", "211006", "211005", null, null, null];
 let potLevels = {};
+let potTags = {}; // potId -> { pre, post } custom non-digit characters shown around the level, e.g. "p4" or "4p"
 let noteCounts = {};
 let discCopies = {};
 let playerId = '10001';
@@ -105,7 +106,7 @@ function saveState() {
   if (previewMode) return; // preview pages (?png/?record-png/?record-image) must never overwrite saved state
   const state = {
     playerId, selectedChars, selectedDiscs,
-    potLevels: {...potLevels}, emblemStats: {...emblemStats},
+    potLevels: {...potLevels}, potTags: JSON.parse(JSON.stringify(potTags)), emblemStats: {...emblemStats},
     emblemStatGroups: {...emblemStatGroups}, noteCounts: {...noteCounts}, discCopies: {...discCopies},
     priorityMap: {...priorityMap},
     potOrder: JSON.parse(JSON.stringify(potOrder)),
@@ -124,6 +125,7 @@ function loadState() {
     selectedChars = (state.selectedChars || []).filter(c => c != null);
     selectedDiscs = state.selectedDiscs || ["212005", "211006", "211005", null, null, null];
     potLevels = state.potLevels || {};
+    potTags = state.potTags || {};
     emblemStats = state.emblemStats || {};
     emblemStatGroups = state.emblemStatGroups || {};
     noteCounts = state.noteCounts || {};
@@ -133,6 +135,58 @@ function loadState() {
     canvasNotes = Array.isArray(state.canvasNotes) ? state.canvasNotes : [];
     charHeadVariants = state.charHeadVariants || {};
   } catch (e) { console.warn('Failed to load state:', e); }
+}
+
+// Typed level input: pulls the number out and keeps at most two non-digit characters around it, so "4p" or "p4" work.
+function parsePotLevelInput(raw, maxLvl) {
+  // drop a trailing "+<digits>" first: that's the auto-rendered emblem bonus (e.g. "4p+1"), not part of the tag
+  const s = String(raw ?? '').replace(/\+\d+\s*$/, '');
+  const m = s.match(/^([^0-9]*?)(\d+)([\s\S]*)$/);
+  if (!m) return { level: 0, pre: '', post: '' };
+  const clean = (str) => str.replace(/[0-9]/g, '').trim().slice(0, 2);
+  const level = Math.min(maxLvl ?? 6, Math.max(0, parseInt(m[2], 10) || 0));
+  const pre = clean(m[1]), post = clean(m[3]);
+  // only two characters allowed in total: prefer the ones after the number
+  if (pre && post) return { level, pre: '', post };
+  return { level, pre, post };
+}
+
+// Compact URL/state form for tags: "<potId>:<pre>~<post>-<potId>:..."
+function encodePotTagsParam() {
+  const parts = [];
+  for (const [id, tag] of Object.entries(potTags)) {
+    if (!tag || (!tag.pre && !tag.post)) continue;
+    if ((potLevels[+id] || 0) <= 0) continue;
+    parts.push(`${id}:${tag.pre || ''}~${tag.post || ''}`);
+  }
+  return parts.join('-');
+}
+
+function parsePotTagsParam(str) {
+  potTags = {};
+  if (!str) return;
+  const clean = (s) => String(s || '').replace(/[0-9]/g, '').trim().slice(0, 2);
+  str.split('-').forEach(part => {
+    if (!part) return;
+    const sep = part.indexOf(':');
+    if (sep === -1) return;
+    const id = part.slice(0, sep);
+    const tag = part.slice(sep + 1);
+    if (!/^\d+$/.test(id)) return;
+    const [pre, post] = tag.split('~');
+    const pre2 = clean(pre), post2 = clean(post);
+    if (pre2 || post2) potTags[id] = { pre: pre2, post: post2 };
+  });
+}
+
+function potTagText(potId) {
+  const tag = potTags[potId] || potTags[String(potId)];
+  return tag ? `${tag.pre || ''}${tag.post || ''}` : '';
+}
+
+function potTagParts(potId) {
+  const tag = potTags[potId] || potTags[String(potId)];
+  return tag ? { pre: tag.pre || '', post: tag.post || '' } : { pre: '', post: '' };
 }
 
 function copyToClipboard(text) {

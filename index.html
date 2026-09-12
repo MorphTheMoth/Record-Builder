@@ -191,6 +191,16 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 .pot-tab .pot-tab-head { position: absolute; left: -22px; top: 50%; margin-top: -22px; width: 44px; height: 44px; overflow: hidden; border-radius: 2px; border: 1px solid #333; background: #2a2a2a; display: block; z-index: 2; box-sizing: border-box; cursor: inherit; }
 .pot-tab .pot-tab-head img { width: calc(100% + 2px); height: calc(100% + 2px); margin: -1px; object-fit: cover; display: block; }
 .pot-tab .pot-tab-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.pot-tab .pot-tab-remove {
+  position: absolute; top: -9px; right: -8px;
+  width: 17px; height: 17px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; font-family: inherit;
+  background: none; border: none; color: #888;
+  text-shadow: 0 0 3px #000; cursor: pointer; z-index: 3;
+  user-select: none; transition: color 0.1s;
+}
+.pot-tab .pot-tab-remove:hover { color: #b56a6a; }
 .pot-tab:hover .pot-tab-head { border-color: #555; }
 .pot-tab.active .pot-tab-head { border-color: #666; }
 .pot-tab[draggable="true"] { cursor: grab; }
@@ -245,10 +255,12 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #66
 .pot-btn:last-child { border-radius: 0 2px 2px 0; }
 .pot-btn:hover { background: #3a3a3a; color: #bbb; }
 .pot-val {
-  width: 28px; background: #222; border: 1px solid #3a3a3a; border-left: none; border-right: none;
+  width: 34px; background: #222; border: 1px solid #3a3a3a; border-left: none; border-right: none;
   color: #ccc; font-size: 13px; font-weight: bold; padding: 0; text-align: center;
-  font-family: inherit; height: 24px; outline: none; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  font-family: inherit; height: 24px; outline: none; box-sizing: border-box; flex-shrink: 0; cursor: text;
 }
+.pot-val::-moz-outer-spin-button, .pot-val::-webkit-outer-spin-button { display: none; }
+.pot-val::selection { background: #3a5a3a; color: #fff; }
 .pot-val:focus { background: #2a2a2a; }
 .priority-select {
   background: #222; border: 1px solid rgb(58,58,58); border-radius: 2px; color: #bbb;
