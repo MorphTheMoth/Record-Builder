@@ -11,6 +11,7 @@ function buildCurrentState() {
     emblemStats: {...emblemStats},
     emblemStatGroups: {...emblemStatGroups},
     potLevels: {...potLevels},
+    potTags: JSON.parse(JSON.stringify(potTags)),
     priorityMap: {...priorityMap},
     potOrder: JSON.parse(JSON.stringify(potOrder)),
     canvasNotes: (canvasNotes || []).map(n => ({...n})),
@@ -306,6 +307,7 @@ function clearDiscs() {
 
 function clearPotentials() {
   potLevels = {};
+  potTags = {};
   potOrder = {};
   currentBuildId = null;
   localStorage.removeItem(CURRENT_BUILD_KEY);
