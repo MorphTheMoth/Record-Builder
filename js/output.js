@@ -274,6 +274,7 @@ function importPotentials(skipUI = false) {
     const validIds = charIds.map(String).filter(id => id !== '0' && charData[id]);
     selectedChars = validIds;
     Object.entries(potentials).forEach(([pid, lvl]) => { potLevels[+pid] = lvl; });
+    potTags = {};
     if (!skipUI) {
       refreshCharBadges();
       updatePotentials();
