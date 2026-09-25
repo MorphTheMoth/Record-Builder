@@ -352,7 +352,7 @@ function renderRecordImage(b64, options = {}) {
           svg += `<g data-id="${p.id}" data-slot="${el.slot}" data-group="${el.key}" transform="translate(${ix},${ry+RP})"><rect width="${PW}" height="${PH}" fill="transparent"/><image x="0" y="0" width="${PW}" height="${PH}" href="${esc(BASE_ASSETS)}potential/${p.id}.webp" preserveAspectRatio="xMidYMid slice" clip-path="url(#c)" style="pointer-events:none;user-select:none"/></g>`;
           if (!['01','02','03','04','21','22','23','24'].includes(String(p.id).slice(-2))) {
             const tg = potTagParts(p.id);
-            svg += `<text x="${ix + 22}" y="${ry + RP + 12}" text-anchor="middle" dominant-baseline="middle" font-size="${currentLvlFont}" font-family="'DejaVu Sans Mono', monospace" font-weight="bold" fill="#568">${esc(tg.pre)}${p.level}${esc(tg.post)}</text>`;
+            svg += `<text x="${ix + 22}" y="${ry + RP + 12}" dy="0.25em" text-anchor="middle" font-size="${currentLvlFont}" font-family="'DejaVu Sans Mono', monospace" font-weight="bold" fill="#568">${esc(tg.pre)}${p.level}${esc(tg.post)}</text>`;
           }
           potPositions.push({ id: String(p.id), slot: el.slot, group: el.key, x: ix, y: ry + RP });
           ix += PW + IG;
