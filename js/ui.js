@@ -60,21 +60,24 @@ async function renderChars() {
   const grid = document.getElementById('charGrid');
   grid.innerHTML = '';
 
-  const ids = Object.keys(charData).sort((a,b) => +a - +b);
+  // Only show released units: charData (characterid.json) contains unreleased
+  // IDs not yet present in character.json — hide those from the grid.
+  const ids = Object.keys(charData).filter(id => charJson[id] != null).sort((a,b) => +a - +b);
+  // Probe the real XXL portrait; chars whose art isn't on ssassets yet stay
+  // visible via the playerhead placeholder instead of being dropped.
   const probes = await Promise.all(ids.map(id => new Promise(resolve => {
     const img = new Image();
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
-    img.src = BASE_ASSETS + `export/assets/assetbundles/icon/head/head_${id}02_XXL.webp`;
+    img.src = headXXLUrl(id, '02');
   })));
 
   const validChars = [];
   for (let i = 0; i < ids.length; i++) {
-    if (!probes[i]) continue;
     const id = ids[i];
     const element = charJson[id]?.element || 'Other';
     const star = charJson[id]?.star ?? null;
-    validChars.push({ id, element, star, name: charData[id] });
+    validChars.push({ id, element, star, name: charData[id] || charJson[id]?.name || id, hasArt: probes[i] });
   }
 
   const elementOrder = { Aqua:0, Ignis:1, Ventus:2, Terra:3, Lux:4, Umbra:5, Other:6 };
@@ -92,7 +95,9 @@ async function renderChars() {
     div.dataset.element = ch.element;
     if (ch.star != null) div.dataset.star = String(ch.star);
 
-    div.appendChild(headCropEl(BASE_ASSETS + `export/assets/assetbundles/icon/head/head_${ch.id}02_XXL.webp`));
+    div.appendChild(headCropEl(
+      ch.hasArt ? headXXLUrl(ch.id, '02') : FALLBACK_HEAD_XXL_URL,
+      FALLBACK_HEAD_XXL_URL));
 
     const lbl = document.createElement('div');
     lbl.className = 'label'; lbl.textContent = ch.name;
@@ -148,7 +153,7 @@ function renderDiscs() {
     try {
       const warm = new Image();
       warm.decoding = 'sync';
-      warm.src = BASE_ASSETS + `export/assets/assetbundles/icon/outfit/outfit_${String(dId).slice(2)}_a.webp`;
+      discImg(warm, dId);
       if (warm.decode) warm.decode().catch(() => {});
     } catch (err) {}
   });
@@ -163,12 +168,16 @@ function renderDiscs() {
     const thumb = document.createElement('div');
     thumb.className = 'disc-thumb' + (selectedDiscs[i] ? ' selected' : '');
     if (selectedDiscs[i]) {
-      const imgId = String(selectedDiscs[i]).slice(2);
-      thumb.innerHTML = `<img decoding="sync" draggable="false" src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">`;
+      const thumbImg = document.createElement('img');
+      thumbImg.decoding = 'sync';
+      thumbImg.draggable = false;
+      discImg(thumbImg, selectedDiscs[i]);
+      thumb.appendChild(thumbImg);
     } else {
       thumb.innerHTML = `<span class="plus">+</span>`;
     }
     thumb.onclick = (e) => { e.stopPropagation(); toggleDiscDropdown(i); };
+    if (selectedDiscs[i]) attachDiscTooltip(thumb, selectedDiscs[i]);
     slot.dataset.discSlot = String(i);
     if (selectedDiscs[i]) {
       thumb.draggable = true;
@@ -274,6 +283,159 @@ function renderDiscs() {
   }
 }
 
+function discSkillIconUrl(icon) {
+  return `${BASE_ASSETS}export/assets/assetbundles/icon/discskill/${icon}.webp`;
+}
+
+const DISC_MELODY_NOTE_IDS = {
+  Pummel: 90011, Luck: 90012, Burst: 90013, Stamina: 90014, Focus: 90015,
+  Skill: 90016, Ultimate: 90017, Aqua: 90018, Ignis: 90019, Ventus: 90020,
+  Terra: 90021, Lux: 90022, Umbra: 90023
+};
+
+function discMelodyToNoteId(melodyName) {
+  const key = String(melodyName || '').replace(/^Melody of\s+/i, '').trim();
+  return DISC_MELODY_NOTE_IDS[key] || null;
+}
+
+function formatDiscSkillDesc(skill) {
+  if (!skill || !skill.desc) return '';
+  const vals = String(skill.p1 || '').split(',');
+  let out = String(skill.desc);
+  vals.forEach((v, i) => { out = out.split(`{${i + 1}}`).join(v); });
+  out = out.replace(/\u000b/g, '<br>');
+  return formatDescriptionWithColor(out);
+}
+
+function getDiscTooltipEl() {
+  let el = document.querySelector('.disc-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'disc-tooltip';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+let _discTtMove = null;
+
+function positionDiscTooltip(tt, e) {
+  const r = tt.getBoundingClientRect();
+  let x = e.clientX + 15, y = e.clientY + 15;
+  if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 12;
+  if (y + r.height > window.innerHeight - 8) y = window.innerHeight - r.height - 8;
+  tt.style.left = Math.max(8, x) + 'px';
+  tt.style.top = Math.max(8, y) + 'px';
+}
+
+function buildDiscTooltip(discId) {
+  const tt = getDiscTooltipEl();
+  const d = discData[discId];
+  tt.innerHTML = '';
+  if (!d) return tt;
+  const top = document.createElement('div');
+  top.className = 'disc-tt-top';
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = discImageUrl(discId);
+  img.onerror = () => { img.src = FALLBACK_DISC_URL; img.onerror = null; };
+  top.appendChild(img);
+  const right = document.createElement('div');
+  const nm = document.createElement('div');
+  nm.className = 'disc-tt-name';
+  nm.textContent = d.name || discId;
+  right.appendChild(nm);
+  const stats = document.createElement('div');
+  stats.className = 'disc-tt-stats';
+  if (d.maxStat) {
+    for (const [k, v] of Object.entries(d.maxStat)) {
+      const line = document.createElement('div');
+      line.textContent = `${k}: ${typeof v === 'number' ? v.toLocaleString('en-US') : v}`;
+      stats.appendChild(line);
+    }
+  }
+  right.appendChild(stats);
+  top.appendChild(right);
+  tt.appendChild(top);
+
+  const skills = [];
+  if (d.mainSkill) skills.push(['Melody', d.mainSkill]);
+  if (d.secondarySkill1 && d.secondarySkill2) {
+    skills.push(['Harmony 1', d.secondarySkill1]);
+    skills.push(['Harmony 2', d.secondarySkill2]);
+  } else {
+    if (d.secondarySkill1) skills.push(['Harmony', d.secondarySkill1]);
+    if (d.secondarySkill2) skills.push(['Harmony', d.secondarySkill2]);
+  }
+  skills.forEach(([kind, skill]) => {
+    const sec = document.createElement('div');
+    sec.className = 'disc-tt-skill';
+    const head = document.createElement('div');
+    head.className = 'disc-tt-skill-head';
+    const sImg = document.createElement('img');
+    sImg.alt = '';
+    sImg.src = discSkillIconUrl(skill.icon);
+    sImg.onerror = () => { sImg.onerror = null; sImg.src = FALLBACK_DISC_URL; };
+    head.appendChild(sImg);
+    const titleWrap = document.createElement('div');
+    const kindEl = document.createElement('span');
+    kindEl.className = 'disc-tt-skill-kind';
+    kindEl.textContent = `${kind} · Lv 1`;
+    const titleEl = document.createElement('span');
+    titleEl.className = 'disc-tt-skill-title';
+    titleEl.textContent = skill.name || kind;
+    titleWrap.appendChild(kindEl);
+    titleWrap.appendChild(titleEl);
+    head.appendChild(titleWrap);
+    sec.appendChild(head);
+    const desc = document.createElement('div');
+    desc.className = 'disc-tt-desc';
+    desc.innerHTML = formatDiscSkillDesc(skill);
+    sec.appendChild(desc);
+    if (skill.req1) {
+      const notes = document.createElement('div');
+      notes.className = 'disc-tt-notes';
+      for (const [melody, qty] of Object.entries(skill.req1)) {
+        const nid = discMelodyToNoteId(melody);
+        if (!nid) continue;
+        const chip = document.createElement('span');
+        chip.className = 'disc-tt-note';
+        chip.title = melody;
+        const nImg = document.createElement('img');
+        nImg.alt = '';
+        nImg.src = `${BASE_ASSETS}export/assets/assetbundles/icon/note/note_${nid}_S.webp`;
+        nImg.onerror = () => chip.remove();
+        const q = document.createElement('span');
+        q.textContent = `×${qty}`;
+        chip.appendChild(nImg);
+        chip.appendChild(q);
+        notes.appendChild(chip);
+      }
+      if (notes.children.length) sec.appendChild(notes);
+    }
+    tt.appendChild(sec);
+  });
+  return tt;
+}
+
+function attachDiscTooltip(el, discId) {
+  if (!el || !discId) return;
+  el.addEventListener('mouseenter', (e) => {
+    const tt = buildDiscTooltip(discId);
+    tt.style.display = 'block';
+    positionDiscTooltip(tt, e);
+    if (_discTtMove) window.removeEventListener('mousemove', _discTtMove);
+    _discTtMove = (ev) => positionDiscTooltip(tt, ev);
+    window.addEventListener('mousemove', _discTtMove);
+  });
+  el.addEventListener('mouseleave', () => {
+    const tt = document.querySelector('.disc-tooltip');
+    if (tt) tt.style.display = 'none';
+    if (_discTtMove) { window.removeEventListener('mousemove', _discTtMove); _discTtMove = null; }
+  });
+}
+
 function fillDiscList(list, slotIdx, filter) {
   list.innerHTML = '';
 
@@ -340,17 +502,25 @@ function fillDiscList(list, slotIdx, filter) {
     ids.forEach(id => {
       if (selectedDiscs.some((sel, idx) => sel === id && idx !== slotIdx)) return;
       const d = discData[id];
-      const imgId = String(id).slice(2);
       const opt = document.createElement('div');
       opt.className = 'disc-option' + (selectedDiscs[slotIdx] === id ? ' selected-opt' : '');
-      opt.innerHTML = `
-        <img src="${BASE_ASSETS}export/assets/assetbundles/icon/outfit/outfit_${imgId}_a.webp" onerror="this.style.opacity=0.2">
-        <div class="info">
-          <div class="dname">${d.name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-          <div class="dmeta">${'★'.repeat(d.star)} · ${d.element}</div>
-        </div>`;
+      const optImg = document.createElement('img');
+      discImg(optImg, id);
+      const info = document.createElement('div');
+      info.className = 'info';
+      const dname = document.createElement('div');
+      dname.className = 'dname';
+      dname.textContent = d.name;
+      const dmeta = document.createElement('div');
+      dmeta.className = 'dmeta';
+      dmeta.textContent = `${'★'.repeat(d.star)} · ${d.element}`;
+      info.appendChild(dname);
+      info.appendChild(dmeta);
+      opt.appendChild(optImg);
+      opt.appendChild(info);
       opt.setAttribute('data-element', d.element);
       opt.onclick = () => selectDisc(slotIdx, id);
+      attachDiscTooltip(opt, id);
       list.appendChild(opt);
     });
   });
