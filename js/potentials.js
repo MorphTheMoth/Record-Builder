@@ -1,3 +1,31 @@
+const EMBLEM_FOLD_KEY = 'nrb-folded-emblems';
+
+function getEmblemFoldedIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(EMBLEM_FOLD_KEY) || '[]')); }
+  catch(e) { return new Set(); }
+}
+
+function isEmblemFolded(cId) {
+  try {
+    const list = JSON.parse(localStorage.getItem(EMBLEM_FOLD_KEY) || '[]');
+    return list.includes(String(cId));
+  } catch(e) { return false; }
+}
+
+function setEmblemFolded(cId, folded) {
+  const key = String(cId);
+  const foldedSet = getEmblemFoldedIds();
+  if (folded) foldedSet.add(key);
+  else foldedSet.delete(key);
+  try { localStorage.setItem(EMBLEM_FOLD_KEY, JSON.stringify([...foldedSet])); } catch(e) {}
+}
+
+function toggleEmblemFold(cId) {
+  const sec = document.querySelector(`.emblem-section[data-char="${cId}"]`);
+  if (!sec) return;
+  setEmblemFolded(cId, sec.classList.toggle('folded'));
+}
+
 function buildEmblemGroups(charId, isMain) {
   const potMap = {};
   const entries = Object.entries(emblemAttrData)
@@ -114,18 +142,30 @@ function updatePotentials() {
   const sec = document.getElementById('potSection');
   const tabs = document.getElementById('potTabs');
   const content = document.getElementById('potContent');
-  const chars = selectedChars.filter(c => c);
-  if (!chars.length) { sec.style.display = 'none'; return; }
+  const occupied = selectedChars.filter(c => c);
+  if (!occupied.length) {
+    const hasCached = (typeof pendingCachedState !== 'undefined' && !!pendingCachedState);
+    sec.style.display = hasCached ? '' : 'none';
+    if (hasCached) {
+      tabs.innerHTML = '';
+      content.innerHTML = '';
+      if (typeof ensureLoadCachedTeamButton === 'function') ensureLoadCachedTeamButton();
+    }
+    return;
+  }
   sec.style.display = '';
   updatePotSaveButton();
 
-  if (activePotTab >= chars.length) activePotTab = 0;
+  if (!selectedChars[activePotTab]) {
+    const first = selectedChars.findIndex(c => c);
+    activePotTab = first >= 0 ? first : 0;
+  }
 
   tabs.innerHTML = '';
-  tabs.classList.toggle('has-extras', chars.length > 3);
+  tabs.classList.toggle('has-extras', selectedChars.length > 3);
 
   // Warm the XXL head cache so the drag ghost includes portraits on the first drag
-  chars.forEach((cId) => {
+  occupied.forEach((cId) => {
     try {
       const v = (typeof charHeadVariants !== 'undefined' && charHeadVariants[String(cId)]) || '02';
       const warm = new Image();
@@ -138,13 +178,16 @@ function updatePotentials() {
   const makeHeadImg = (cId) => {
     const wrap = document.createElement('span');
     wrap.className = 'pot-tab-head';
+    wrap.title = '';
     const img = document.createElement('img');
     img.alt = '';
+    img.title = '';
     img.draggable = false;
     try { img.decoding = 'sync'; } catch (err) {}
     const variant = (typeof charHeadVariants !== 'undefined' && charHeadVariants[String(cId)]) || '02';
     headXXLImg(img, cId, variant);
     wrap.appendChild(img);
+    if (typeof attachCharTooltip === 'function') attachCharTooltip(wrap, cId);
     return wrap;
   };
 
@@ -154,10 +197,10 @@ function updatePotentials() {
     btn.className = 'pot-tab' + (idx === activePotTab ? ' active' : '');
     btn.draggable = true;
     btn.dataset.slot = String(idx);
-    btn.title = 'Drag to swap position';
     btn.appendChild(makeHeadImg(cId));
     const label = document.createElement('span');
     label.className = 'pot-tab-name';
+    label.title = 'Drag to swap position';
     label.textContent = name;
     btn.appendChild(label);
     const removeBtn = document.createElement('span');
@@ -170,6 +213,15 @@ function updatePotentials() {
     };
     btn.appendChild(removeBtn);
     btn.onclick = () => { activePotTab = idx; updatePotentials(); };
+    // Middle-click a selected character tab to unselect it.
+    btn.addEventListener('auxclick', (e) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      if (typeof toggleChar === 'function') toggleChar(cId);
+    });
+    btn.addEventListener('mousedown', (e) => {
+      if (e.button === 1) e.preventDefault();
+    });
     btn.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-pot-slot', String(idx));
       e.dataTransfer.effectAllowed = 'move';
@@ -251,7 +303,7 @@ function updatePotentials() {
     title.className = 'pot-slot-title';
     title.textContent = slotTitle(i);
     col.appendChild(title);
-    const cId = chars[i];
+    const cId = selectedChars[i];
     if (cId) {
       const tab = createPotTab(cId, i);
       col.appendChild(tab);
@@ -266,7 +318,7 @@ function updatePotentials() {
     tabs.appendChild(col);
   }
 
-  if (chars.length > 3) {
+  if (selectedChars.length > 3) {
     const col = document.createElement('div');
     col.className = 'pot-slot-col pot-extras-col';
     const title = document.createElement('div');
@@ -275,8 +327,10 @@ function updatePotentials() {
     col.appendChild(title);
     const stack = document.createElement('div');
     stack.className = 'pot-extras-stack';
-    for (let i = 3; i < chars.length; i++) {
-      const tab = createPotTab(chars[i], i);
+    for (let i = 3; i < selectedChars.length; i++) {
+      const cId = selectedChars[i];
+      if (!cId) continue;
+      const tab = createPotTab(cId, i);
       stack.appendChild(tab);
       attachDropTarget(tab, i);
     }
@@ -285,7 +339,8 @@ function updatePotentials() {
   }
 
   content.innerHTML = '';
-  chars.forEach((cId, tabIdx) => {
+  selectedChars.forEach((cId, tabIdx) => {
+    if (!cId) return;
     const page = document.createElement('div');
     page.className = 'pot-page' + (tabIdx === activePotTab ? ' active' : '');
 
@@ -481,21 +536,26 @@ function updatePotentials() {
     page.appendChild(groupsRow);
 
     const emblemSection = document.createElement('div');
-    emblemSection.className = 'emblem-section';
+    emblemSection.className = 'emblem-section' + (isEmblemFolded(cId) ? ' folded' : '');
+    emblemSection.dataset.char = String(cId);
 
     const emblemLabel = document.createElement('div');
     emblemLabel.className = 'emblem-section-label';
     emblemLabel.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
 
     const emblemLabelText = document.createElement('span');
+    emblemLabelText.className = 'emblem-fold-title';
     emblemLabelText.textContent = 'Emblems';
+    emblemLabelText.onclick = () => {
+      setEmblemFolded(cId, emblemSection.classList.toggle('folded'));
+    };
     emblemLabel.appendChild(emblemLabelText);
 
     const clearEmblemBtn = document.createElement('button');
     clearEmblemBtn.className = 'import-btn clear-btn';
     clearEmblemBtn.textContent = 'Clear';
     clearEmblemBtn.title = 'Reset all emblems for this character';
-    clearEmblemBtn.onclick = () => clearEmblems(cId);
+    clearEmblemBtn.onclick = (e) => { e.stopPropagation(); clearEmblems(cId); };
     emblemLabel.appendChild(clearEmblemBtn);
 
     emblemSection.appendChild(emblemLabel);
@@ -631,6 +691,7 @@ function updatePotentials() {
     content.appendChild(page);
     updateEmblemOutput(cId);
   });
+  if (typeof ensureLoadCachedTeamButton === 'function') ensureLoadCachedTeamButton();
 }
 
 function getEmblemDefaultOptions(emblemIdx) {
@@ -826,41 +887,38 @@ function togglePriorityMode() {
 }
 
 function swapPotSlots(fromIdx, toIdx) {
-  const chars = selectedChars.filter(c => c);
   fromIdx = Number(fromIdx);
   toIdx = Number(toIdx);
   if (Number.isNaN(fromIdx) || Number.isNaN(toIdx)) return;
   if (fromIdx === toIdx) return;
-  if (fromIdx < 0 || fromIdx >= chars.length) return;
   if (toIdx < 0) return;
+  if (fromIdx < 0 || fromIdx >= selectedChars.length) return;
+  if (!selectedChars[fromIdx]) return;
+
+  // Pad with empty slots so drops onto empty Main/Support columns work,
+  // e.g. moving a lone Main character to Support yields [empty, char].
+  while (selectedChars.length <= Math.max(fromIdx, toIdx)) selectedChars.push(null);
 
   // Keep per-slot custom pot ordering attached to the character, not the position
-  const orderArr = [];
-  for (let i = 0; i < chars.length; i++) orderArr[i] = potOrder[i];
+  const tmp = selectedChars[fromIdx];
+  selectedChars[fromIdx] = selectedChars[toIdx] || null;
+  selectedChars[toIdx] = tmp;
+  const tmpO = potOrder[fromIdx];
+  potOrder[fromIdx] = potOrder[toIdx];
+  if (tmpO !== undefined) potOrder[toIdx] = tmpO;
+  else delete potOrder[toIdx];
 
-  if (toIdx < chars.length) {
-    const tmp = selectedChars[fromIdx];
-    selectedChars[fromIdx] = selectedChars[toIdx];
-    selectedChars[toIdx] = tmp;
-    const tmpO = orderArr[fromIdx];
-    orderArr[fromIdx] = orderArr[toIdx];
-    orderArr[toIdx] = tmpO;
-    activePotTab = toIdx;
-  } else {
-    const [moved] = selectedChars.splice(fromIdx, 1);
-    const [movedO] = orderArr.splice(fromIdx, 1);
-    const insertAt = Math.min(toIdx, selectedChars.length);
-    selectedChars.splice(insertAt, 0, moved);
-    orderArr.splice(insertAt, 0, movedO);
-    activePotTab = insertAt;
+  // Drop trailing empty slots so a lone character keeps a compact array
+  while (selectedChars.length && !selectedChars[selectedChars.length - 1]) {
+    selectedChars.pop();
+    delete potOrder[selectedChars.length];
   }
 
-  const rebuilt = {};
-  orderArr.forEach((entry, i) => { if (entry !== undefined) rebuilt[i] = entry; });
-  potOrder = rebuilt;
+  activePotTab = toIdx;
 
   if (typeof refreshCharBadges === 'function') refreshCharBadges();
   updatePotentials();
   if (typeof updateNotes === 'function') updateNotes();
   if (typeof generate === 'function') generate();
+  if (typeof saveState === 'function') saveState();
 }

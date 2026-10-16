@@ -106,6 +106,16 @@ async function renderChars() {
 
     attachCharTooltip(div, ch.id);
     div.onclick = () => toggleChar(ch.id);
+    // Middle-click a selected character to unselect it (never selects).
+    div.addEventListener('auxclick', (e) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      if (selectedChars.includes(ch.id)) toggleChar(ch.id);
+    });
+    // Prevent middle-click autoscroll so auxclick fires cleanly.
+    div.addEventListener('mousedown', (e) => {
+      if (e.button === 1) e.preventDefault();
+    });
     grid.appendChild(div);
   }
 
@@ -133,8 +143,18 @@ function toggleChar(id) {
   const idx = selectedChars.indexOf(id);
   if (idx >= 0) {
     selectedChars.splice(idx, 1);
+    // Drop trailing empty slots left by support/main swaps
+    while (selectedChars.length && !selectedChars[selectedChars.length - 1]) selectedChars.pop();
+    if (typeof activePotTab !== 'undefined' && activePotTab >= selectedChars.length) {
+      const first = selectedChars.findIndex(c => c);
+      activePotTab = first >= 0 ? first : 0;
+    }
   } else {
-    selectedChars.push(id);
+    // Fill the first empty Main/Support slot so a support-only single
+    // keeps its position instead of being pushed to the end.
+    const hole = selectedChars.findIndex(c => !c);
+    if (hole >= 0 && hole < 3) selectedChars[hole] = id;
+    else selectedChars.push(id);
   }
   if (!selectedChars.length) {
     currentBuildId = null;
@@ -369,6 +389,10 @@ function ensureDiscSelInit() {
   resetDiscSelFiltersToDefaults();
   renderDiscSelFilters();
   renderDiscSelection();
+  const wrap = document.getElementById('discSelWrap');
+  if (wrap && wrap.classList.contains('open') && activeDiscSlot == null) {
+    applyDiscSelHighlight(discHighlightForSlot(null));
+  }
 }
 
 function renderDiscSelFilters() {
@@ -727,7 +751,7 @@ function renderDiscSelection() {
     const img = document.createElement('img');
     img.className = 'disc-sel-art';
     img.loading = 'lazy';
-    img.alt = d.name || id;
+    img.alt = '';
     img.draggable = false;
     discImg(img, id);
     wrap.appendChild(img);
@@ -1162,6 +1186,92 @@ function updateDiscOutputText() {
   outEl.textContent = lines.length ? lines.join('\n')+'\n' : '—';
 }
 
+// ---- Note hover tooltip (notes section images) ----
+// Hardcoded from data/Item.json ("Item.<noteId>.1" = name, "Item.<noteId>.2" = stat)
+// plus per-note values from the screenshot (value of a single note).
+const NOTE_INFO = {
+  90011: { name: 'Melody of Pummel', stat: 'ATK', value: '0.30%' },
+  90012: { name: 'Melody of Luck', stat: 'Crit Rate', value: '0.10%' },
+  90013: { name: 'Melody of Burst', stat: 'Crit DMG', value: '0.46%' },
+  90014: { name: 'Melody of Stamina', stat: 'Max HP', value: '0.30%' },
+  90015: { name: 'Melody of Focus', stat: 'Auto Attack DMG', value: '1.20%' },
+  90016: { name: 'Melody of Skill', stat: 'Skill DMG', value: '0.46%' },
+  90017: { name: 'Melody of Ultimate', stat: 'Ultimate DMG', value: '1.00%' },
+  90018: { name: 'Melody of Aqua', stat: 'Aqua DMG Boost', value: '0.30%' },
+  90019: { name: 'Melody of Ignis', stat: 'Ignis DMG Boost', value: '0.30%' },
+  90020: { name: 'Melody of Ventus', stat: 'Ventus DMG Boost', value: '0.30%' },
+  90021: { name: 'Melody of Terra', stat: 'Terra DMG Boost', value: '0.30%' },
+  90022: { name: 'Melody of Lux', stat: 'Lux DMG Boost', value: '0.30%' },
+  90023: { name: 'Melody of Umbra', stat: 'Umbra DMG Boost', value: '0.30%' },
+};
+
+function getNoteTooltipEl() {
+  let el = document.querySelector('.note-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'note-tooltip';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+let _noteTtMove = null;
+
+function positionNoteTooltip(tt, e) {
+  const r = tt.getBoundingClientRect();
+  let x = e.clientX + 15, y = e.clientY + 15;
+  if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 12;
+  if (y + r.height > window.innerHeight - 8) y = window.innerHeight - r.height - 8;
+  tt.style.left = Math.max(8, x) + 'px';
+  tt.style.top = Math.max(8, y) + 'px';
+}
+
+function hideNoteTooltip() {
+  const tt = document.querySelector('.note-tooltip');
+  if (tt) tt.style.display = 'none';
+  if (_noteTtMove) { window.removeEventListener('mousemove', _noteTtMove); _noteTtMove = null; }
+}
+
+function buildNoteTooltip(noteId) {
+  const tt = getNoteTooltipEl();
+  const info = NOTE_INFO[noteId] || { name: getNoteShortName(noteId), stat: '' };
+  tt.innerHTML = '';
+  const top = document.createElement('div');
+  top.className = 'note-tt-top';
+  const img = document.createElement('img');
+  img.alt = '';
+  noteImg(img, noteId);
+  top.appendChild(img);
+  const right = document.createElement('div');
+  const nm = document.createElement('div');
+  nm.className = 'note-tt-name';
+  nm.textContent = info.name;
+  right.appendChild(nm);
+  const stats = document.createElement('div');
+  stats.className = 'note-tt-stats';
+  const line = document.createElement('div');
+  line.textContent = info.stat ? `${info.stat}: ${info.value || ''}`.trim() : (info.value || '');
+  stats.appendChild(line);
+  right.appendChild(stats);
+  top.appendChild(right);
+  tt.appendChild(top);
+  return tt;
+}
+
+function attachNoteTooltip(el, noteId) {
+  if (!el || !noteId) return;
+  el.addEventListener('mouseenter', (e) => {
+    const tt = buildNoteTooltip(noteId);
+    tt.style.display = 'block';
+    positionNoteTooltip(tt, e);
+    if (_noteTtMove) window.removeEventListener('mousemove', _noteTtMove);
+    _noteTtMove = (ev) => positionNoteTooltip(tt, ev);
+    window.addEventListener('mousemove', _noteTtMove);
+  });
+  el.addEventListener('mouseleave', () => hideNoteTooltip());
+}
+
 function updateNotes(resetNotesCount = 20) {
   const sec = document.getElementById('notesSection');
   const grid = document.getElementById('notesGrid');
@@ -1185,6 +1295,7 @@ function updateNotes(resetNotesCount = 20) {
 
     const img = document.createElement('img');
     noteImg(img, id);
+    attachNoteTooltip(img, id);
 
     const nm = document.createElement('div');
     nm.className = 'nname'; nm.textContent = getNoteShortName(id);
